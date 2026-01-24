@@ -2,23 +2,56 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 import ApexCharts from 'apexcharts';
 
+// Services
+import { api, auth, barcode, store } from './services/index.js';
+
 // flatpickr
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 // FullCalendar
 import { Calendar } from '@fullcalendar/core';
 
-
-
+// Make services globally available
 window.Alpine = Alpine;
 window.ApexCharts = ApexCharts;
 window.flatpickr = flatpickr;
 window.FullCalendar = Calendar;
 
+// Make services globally available
+window.ApiService = api;
+window.AuthService = auth;
+window.BarcodeService = barcode;
+window.SagaStore = store;
+
+// Initialize Alpine.js
 Alpine.start();
+
+// Setup Alpine.js store integration
+Alpine.store('app', {
+    user: store.user,
+    tenant: store.tenant,
+    isAuthenticated: store.isAuthenticated(),
+    darkMode: store.darkMode,
+    sidebarCollapsed: store.sidebarCollapsed
+});
+
+// Initialize barcode scanner on page load
+barcode.init();
+
+// Hide preloader when Alpine is ready
+Alpine.nextTick(() => {
+    if (window.hidePreloader) {
+        window.hidePreloader();
+    }
+});
 
 // Initialize components on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
+    // Hide preloader on DOMContentLoaded
+    if (window.hidePreloader) {
+        window.hidePreloader();
+    }
+
     // Map imports
     if (document.querySelector('#mapOne')) {
         import('./components/map').then(module => module.initMap());

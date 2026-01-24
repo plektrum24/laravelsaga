@@ -1,0 +1,38 @@
+[
+  {
+    "Database": "information_schema"
+  },
+  {
+    "Database": "mysql"
+  },
+  {
+    "Database": "performance_schema"
+  },
+  {
+    "Database": "phpmyadmin"
+  },
+  {
+    "Database": "saga_main"
+  },
+  {
+    "Database": "saga_shop"
+  },
+  {
+    "Database": "saga_tenant_jkt001"
+  },
+  {
+    "Database": "saganewtoko_db"
+  },
+  {
+    "Database": "sagatoko"
+  },
+  {
+    "Database": "sagatokov2"
+  },
+  {
+    "Database": "test"
+  },
+  {
+    "Database": "{database_name}"
+  }
+]

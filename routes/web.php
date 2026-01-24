@@ -1,106 +1,127 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
 
-// dashboard pages
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
+
+// Dashboard
 Route::get('/', function () {
-    return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
+    return view('pages.dashboard');
 })->name('dashboard');
 
-// calender pages
-Route::get('/calendar', function () {
-    return view('pages.calender', ['title' => 'Calendar']);
-})->name('calendar');
-
-// profile pages
-Route::get('/profile', function () {
-    return view('pages.profile', ['title' => 'Profile']);
-})->name('profile');
-
-// form pages
-Route::get('/form-elements', function () {
-    return view('pages.form.form-elements', ['title' => 'Form Elements']);
-})->name('form-elements');
-
-// tables pages
-Route::get('/basic-tables', function () {
-    return view('pages.tables.basic-tables', ['title' => 'Basic Tables']);
-})->name('basic-tables');
-
-// pages
-
-Route::get('/blank', function () {
-    return view('pages.blank', ['title' => 'Blank']);
-})->name('blank');
-
-// error pages
-Route::get('/error-404', function () {
-    return view('pages.errors.error-404', ['title' => 'Error 404']);
-})->name('error-404');
-
-// chart pages
-Route::get('/line-chart', function () {
-    return view('pages.chart.line-chart', ['title' => 'Line Chart']);
-})->name('line-chart');
-
-Route::get('/bar-chart', function () {
-    return view('pages.chart.bar-chart', ['title' => 'Bar Chart']);
-})->name('bar-chart');
-
-
-// authentication pages
+// Auth
+Route::get('/signup', function () {
+    return view('pages.auth.signup');
+})->name('signup');
 Route::get('/signin', function () {
-    return view('pages.auth.signin', ['title' => 'Sign In']);
+    return view('pages.auth.signin');
 })->name('signin');
 
-Route::get('/signup', function () {
-    return view('pages.auth.signup', ['title' => 'Sign Up']);
-})->name('signup');
+// Inventory
+Route::prefix('inventory')->name('inventory.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.inventory.index');
+    })->name('index');
+    Route::get('/create', function () {
+        return view('pages.inventory.create');
+    })->name('create');
+    Route::get('/categories', function () {
+        return view('pages.inventory.categories');
+    })->name('categories');
+    Route::get('/stock-management', function () {
+        return view('pages.inventory.stock-management');
+    })->name('stock-management');
+    Route::get('/transfer', function () {
+        return view('pages.inventory.transfer');
+    })->name('transfer');
+    Route::get('/deadstock', function () {
+        return view('pages.inventory.deadstock');
+    })->name('deadstock');
 
-// ui elements pages
-Route::get('/alerts', function () {
-    return view('pages.ui-elements.alerts', ['title' => 'Alerts']);
-})->name('alerts');
+    // Receiving
+    Route::prefix('receiving')->name('receiving.')->group(function () {
+        Route::get('/goods-in', function () {
+            return view('pages.inventory.receiving.goods-in');
+        })->name('goods-in');
+        Route::get('/supplier-returns', function () {
+            return view('pages.inventory.receiving.supplier-returns');
+        })->name('supplier-returns');
+        Route::get('/customer-returns', function () {
+        })->name('customer-returns');
+    });
 
-Route::get('/avatars', function () {
-    return view('pages.ui-elements.avatars', ['title' => 'Avatars']);
-})->name('avatars');
+    Route::get('/suppliers', function () {
+        return view('pages.inventory.suppliers');
+    })->name('suppliers');
+});
 
-Route::get('/badge', function () {
-    return view('pages.ui-elements.badges', ['title' => 'Badges']);
-})->name('badges');
+// Finance
+Route::prefix('finance')->name('finance.')->group(function () {
+    Route::get('/debts', function () {
+        return view('pages.finance.debts');
+    })->name('debts');
+    Route::get('/receivables', function () {
+        return view('pages.finance.receivables');
+    })->name('receivables');
+});
 
-Route::get('/buttons', function () {
-    return view('pages.ui-elements.buttons', ['title' => 'Buttons']);
-})->name('buttons');
+// Sales
+Route::prefix('sales')->name('sales.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.sales.index');
+    })->name('index');
+    Route::get('/create', function () {
+        return view('pages.sales.create');
+    })->name('create');
+});
 
-Route::get('/image', function () {
-    return view('pages.ui-elements.images', ['title' => 'Images']);
-})->name('images');
+// POS
+Route::get('/pos', function () {
+    return view('pages.pos.index');
+})->name('pos.index');
 
-Route::get('/videos', function () {
-    return view('pages.ui-elements.videos', ['title' => 'Videos']);
-})->name('videos');
+// Customers
+Route::prefix('customers')->name('customers.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.customers.index');
+    })->name('index');
+});
 
+// Reports
+Route::get('/reports', function () {
+    return view('pages.reports.index');
+})->name('reports.index');
 
+// Settings
+Route::get('/settings', function () {
+    return view('pages.settings.index');
+})->name('settings.index');
 
+// User Management
+Route::get('/users', function () {
+    return view('pages.users.index');
+})->name('users.index');
 
+// Payroll
+Route::get('/payroll', function () {
+    return view('pages.payroll.index');
+})->name('payroll.index');
 
+// Branch Management
+Route::get('/branches', function () {
+    return view('pages.branches.index');
+})->name('branches.index');
 
+// Profile
+Route::get('/profile', function () {
+    return view('pages.profile');
+})->name('profile');
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Fallback
+Route::get('/blank', function () {
+    return view('pages.blank');
+})->name('blank');
