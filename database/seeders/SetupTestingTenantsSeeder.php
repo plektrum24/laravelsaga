@@ -32,8 +32,13 @@ class SetupTestingTenantsSeeder extends Seeder
                 'tenant_id' => $retailTenant->id,
             ]
         );
-        $retailUser->assignRole('Owner');
-        $retailUser->update(['tenant_id' => $retailTenant->id]); // Ensure link
+        // Ensure Roles Exist (Fix for 'RoleDoesNotExist' if logic relies on Events that might not fire)
+        $guardName = 'web';
+        $roleOwner = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Owner', 'guard_name' => $guardName]);
+
+        // Assign Role
+        $retailUser->assignRole($roleOwner);
+        $retailUser->update(['tenant_id' => $retailTenant->id]);
 
         $this->command->info("Retail User Created: retail@sagatoko.com / 12345678");
 
@@ -58,7 +63,7 @@ class SetupTestingTenantsSeeder extends Seeder
                 'tenant_id' => $barberTenant->id,
             ]
         );
-        $barberUser->assignRole('Owner'); // This 'Owner' is creating during BootTenant for Barber? 
+        $barberUser->assignRole($roleOwner);
         // Note: Spatie roles are global by default in this table setup, but permissions differ.
         // Actually, in BootTenantPermissions:
         // retail -> Owner gets ['manage_stock', 'pos_access']
