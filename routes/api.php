@@ -18,6 +18,14 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
+    // Cash Register Routes
+    Route::prefix('cash-register')->group(function () {
+        Route::get('/current', [\App\Modules\Retail\Controllers\CashRegisterController::class, 'current']);
+        Route::post('/open', [\App\Modules\Retail\Controllers\CashRegisterController::class, 'open']);
+        Route::post('/close', [\App\Modules\Retail\Controllers\CashRegisterController::class, 'close']);
+        Route::post('/expense', [\App\Modules\Retail\Controllers\CashRegisterController::class, 'addExpense']);
+    });
+
     Route::get('/user/menus', [\App\Http\Controllers\Api\MenuController::class, 'getMenus']);
 
     // Master Data 

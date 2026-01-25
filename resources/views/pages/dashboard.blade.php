@@ -4,109 +4,158 @@
 
 @section('content')
     <div x-data="{
-                stats: { today: { orders: 0, sales: 0 }, week: 0, month: 0, lowStockCount: 0, weeklyChart: [] },
-                priceLogs: [],
-                isLoading: true,
-                user: @json(auth()->user()),
+                            stats: { today: { orders: 0, sales: 0 }, week: 0, month: 0, lowStockCount: 0, weeklyChart: [] },
+                            priceLogs: [],
+                            isLoading: true,
+                            user: @json(auth()->user()),
 
-                async init() {
-                    const token = localStorage.getItem('saga_token');
-                    if (!token) {
-                        window.location.href = '{{ route('signin') }}';
-                        return;
-                    }
-                    await this.fetchDashboard();
-                    await this.fetchPriceLogs();
-                },
+                            async init() {
+                                const token = localStorage.getItem('saga_token');
+                                if (!token) {
+                                    window.location.href = '{{ route('signin') }}';
+                                    return;
+                                }
+                                await this.fetchDashboard();
+                                await this.fetchPriceLogs();
+                            },
 
-                async fetchDashboard() {
-                    try {
-                        const token = localStorage.getItem('saga_token');
-                        let url = '/api/reports/dashboard';
+                            async fetchDashboard() {
+                                try {
+                                    const token = localStorage.getItem('saga_token');
+                                    let url = '/api/reports/dashboard';
 
-                        // Handle branch selection if implemented in API
-                        const selectedBranch = localStorage.getItem('saga_selected_branch');
-                        const user = this.user || JSON.parse(localStorage.getItem('saga_user') || '{}');
+                                    // Handle branch selection if implemented in API
+                                    const selectedBranch = localStorage.getItem('saga_selected_branch');
+                                    const user = this.user || JSON.parse(localStorage.getItem('saga_user') || '{}');
 
-                        if (user.role === 'tenant_owner' && selectedBranch) {
-                            url += '?branch_id=' + selectedBranch;
-                        } else if (user.branch_id) {
-                            url += '?branch_id=' + user.branch_id;
-                        }
+                                    if (user.role === 'tenant_owner' && selectedBranch) {
+                                        url += '?branch_id=' + selectedBranch;
+                                    } else if (user.branch_id) {
+                                        url += '?branch_id=' + user.branch_id;
+                                    }
 
-                        // Mocking data if API fails or for demo (Remove in production)
-                        // In exact migration we assume API works, but basic structure is needed.
-                        /*
-                        this.stats = {
-                            today: { orders: 12, sales: 15600000 },
-                            week: 45000000,
-                            lowStockCount: 3,
-                            weeklyChart: [
-                               { date: '2023-10-01', total: 500000 },
-                               { date: '2023-10-02', total: 1500000 },
-                               // ...
-                            ]
-                        };
-                        */
+                                    // Mocking data if API fails or for demo (Remove in production)
+                                    // In exact migration we assume API works, but basic structure is needed.
+                                    /*
+                                    this.stats = {
+                                        today: { orders: 12, sales: 15600000 },
+                                        week: 45000000,
+                                        lowStockCount: 3,
+                                        weeklyChart: [
+                                           { date: '2023-10-01', total: 500000 },
+                                           { date: '2023-10-02', total: 1500000 },
+                                           // ...
+                                        ]
+                                    };
+                                    */
 
-                        const response = await fetch(url, {
-                            headers: { 'Authorization': 'Bearer ' + token }
-                        });
+                                    const response = await fetch(url, {
+                                        headers: { 'Authorization': 'Bearer ' + token }
+                                    });
 
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.success) {
-                                this.stats = data.data;
+                                    if (response.ok) {
+                                        const data = await response.json();
+                                        if (data.success) {
+                                            this.stats = data.data;
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Dashboard fetch error:', error);
+                                } finally {
+                                    this.isLoading = false;
+                                }
+                            },
+
+                            async fetchPriceLogs() {
+                                try {
+                                    const token = localStorage.getItem('saga_token');
+                                    const response = await fetch('/api/products/reports/price-logs?limit=5', {
+                                        headers: { 'Authorization': 'Bearer ' + token }
+                                    });
+                                    if (response.ok) {
+                                        const data = await response.json();
+                                        if (data.success) {
+                                            this.priceLogs = data.data;
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Fetch price logs error:', error);
+                                }
+                            },
+
+                            formatCurrency(amount) {
+                                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
+                            },
+
+                            checkRole(allowedRoles) {
+                                const userRole = this.user?.role_name || this.user?.role || 'guest'; 
+                                // Note: Depending on backend, it might be role_name (Spatie) or role (column). 
+                                // My seeder used 'role' column as fallback. checking both.
+                                return allowedRoles.includes(userRole);
+                            },
+
+                            // Cash Expense Logic
+                            showExpenseModal: false,
+                            expenseForm: { amount: '', note: '' },
+                            isSubmittingExpense: false,
+
+                            openExpenseModal() {
+                                this.expenseForm = { amount: '', note: '' };
+                                this.showExpenseModal = true;
+                            },
+
+                            async submitExpense() {
+                                if (!this.expenseForm.amount || !this.expenseForm.note) {
+                                    alert('Mohon isi jumlah dan catatan.');
+                                    return;
+                                }
+
+                                this.isSubmittingExpense = true;
+                                try {
+                                    const token = localStorage.getItem('saga_token');
+                                    const response = await fetch('/api/cash-register/expense', {
+                                        method: 'POST',
+                                        headers: { 
+                                            'Authorization': 'Bearer ' + token,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify(this.expenseForm)
+                                    });
+
+                                    const data = await response.json();
+                                    if (data.success) {
+                                        alert('Pengeluaran berhasil dicatat!');
+                                        this.showExpenseModal = false;
+                                    } else {
+                                        alert('Gagal: ' + (data.message || 'Terjadi kesalahan'));
+                                    }
+                                } catch (error) {
+                                        alert('Error sistem: ' + error.message);
+                                } finally {
+                                    this.isSubmittingExpense = false;
+                                }
                             }
-                        }
-                    } catch (error) {
-                        console.error('Dashboard fetch error:', error);
-                    } finally {
-                        this.isLoading = false;
-                    }
-                },
-
-                async fetchPriceLogs() {
-                    try {
-                        const token = localStorage.getItem('saga_token');
-                        const response = await fetch('/api/products/reports/price-logs?limit=5', {
-                            headers: { 'Authorization': 'Bearer ' + token }
-                        });
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.success) {
-                                this.priceLogs = data.data;
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Fetch price logs error:', error);
-                    }
-                },
-
-                formatCurrency(amount) {
-                    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
-                }
-            }">
+                        }">
         <!-- Subscription Expiry Warning Banner -->
         <div x-data="{ 
-                    tenant: JSON.parse(localStorage.getItem('saga_tenant')),
-                    get daysLeft() {
-                        if (!this.tenant?.subscription?.days_left) return -1;
-                        return this.tenant.subscription.days_left;
-                    },
-                    get showWarning() {
-                        return this.daysLeft >= 0 && this.daysLeft <= 7;
-                    },
-                    get warningColor() {
-                        if (this.daysLeft <= 1) return 'bg-red-500';
-                        if (this.daysLeft <= 3) return 'bg-orange-500';
-                        return 'bg-yellow-500';
-                    },
-                    formatDate(dateStr) {
-                        if (!dateStr) return '-';
-                        return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-                    }
-                }" x-show="showWarning" class="mb-4" style="display: none;">
+                                tenant: JSON.parse(localStorage.getItem('saga_tenant')),
+                                get daysLeft() {
+                                    if (!this.tenant?.subscription?.days_left) return -1;
+                                    return this.tenant.subscription.days_left;
+                                },
+                                get showWarning() {
+                                    return this.daysLeft >= 0 && this.daysLeft <= 7;
+                                },
+                                get warningColor() {
+                                    if (this.daysLeft <= 1) return 'bg-red-500';
+                                    if (this.daysLeft <= 3) return 'bg-orange-500';
+                                    return 'bg-yellow-500';
+                                },
+                                formatDate(dateStr) {
+                                    if (!dateStr) return '-';
+                                    return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                                }
+                            }" x-show="showWarning" class="mb-4" style="display: none;">
             <div :class="warningColor" class="rounded-xl p-4 text-white flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,8 +347,26 @@
                 </div>
             </a>
 
-            <!-- Quick Inventory -->
-            <a href="{{ route('inventory.index') }}" x-show="user?.role !== 'cashier'"
+            <!-- Quick Expenses (New Feature - Kasir & Owner) -->
+            <button @click="openExpenseModal()" x-show="checkRole(['Kasir', 'Owner'])"
+                class="group rounded-2xl border border-gray-200 bg-white p-6 hover:border-red-300 hover:shadow-lg transition-all dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-red-800 text-left">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center justify-center w-14 h-14 bg-red-50 rounded-xl dark:bg-red-900/20">
+                        <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Uang Keluar</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Catat pengeluaran</p>
+                    </div>
+                </div>
+            </button>
+
+            <!-- Quick Inventory (Hidden for Kasir) -->
+            <a href="{{ route('inventory.index') }}" x-show="!checkRole(['Kasir'])"
                 class="group rounded-2xl border border-gray-200 bg-white p-6 hover:border-brand-300 hover:shadow-lg transition-all dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-800">
                 <div class="flex items-center gap-4">
                     <div class="flex items-center justify-center w-14 h-14 bg-orange-50 rounded-xl dark:bg-orange-900/20">
@@ -316,7 +383,7 @@
             </a>
 
             <!-- Quick Reports -->
-            <a href="{{ route('reports.index') }}" x-show="user?.role !== 'cashier'"
+            <a href="{{ route('reports.index') }}" x-show="!checkRole(['Gudang'])"
                 class="group rounded-2xl border border-gray-200 bg-white p-6 hover:border-brand-300 hover:shadow-lg transition-all dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-800">
                 <div class="flex items-center gap-4">
                     <div class="flex items-center justify-center w-14 h-14 bg-indigo-50 rounded-xl dark:bg-indigo-900/20">
@@ -353,7 +420,7 @@
         </div>
 
         <!-- Recent Price Changes Widget -->
-        <div x-show="priceLogs && priceLogs.length > 0"
+        <div x-show="checkRole(['Owner', 'Manager']) && priceLogs && priceLogs.length > 0"
             class="mb-6 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
@@ -401,7 +468,7 @@
         </div>
 
         <!-- Sales Chart Placeholder -->
-        <div x-show="user?.role !== 'cashier'"
+        <div x-show="checkRole(['Owner', 'Manager'])"
             class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Weekly Sales</h3>
             <div class="h-64 flex items-center justify-center text-gray-400" id="weeklyChart">
@@ -419,6 +486,53 @@
                             </div>
                         </template>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- EXPENSE MODAL -->
+        <div x-show="showExpenseModal" x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+            <div @click.away="showExpenseModal = false"
+                class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 transform transition-all"
+                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100">
+
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Catat Pengeluaran Kas</h3>
+                    <button @click="showExpenseModal = false"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah Uang
+                            (Rp)</label>
+                        <input type="number" x-model="expenseForm.amount" placeholder="Contoh: 50000"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Keterangan /
+                            Catatan</label>
+                        <textarea x-model="expenseForm.note" rows="3" placeholder="Contoh: Beli sabun pel lantai"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                    </div>
+
+                    <button @click="submitExpense()" :disabled="isSubmittingExpense"
+                        class="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition flex items-center justify-center gap-2">
+                        <span x-show="isSubmittingExpense"
+                            class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                        <span>Simpan Pengeluaran</span>
+                    </button>
+                    <p class="text-xs text-gray-500 text-center mt-2">Data akan langsung tercatat di Laporan Kas Harian.</p>
                 </div>
             </div>
         </div>

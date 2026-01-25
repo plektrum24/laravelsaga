@@ -13,6 +13,10 @@ Route::get('/', function () {
     return view('pages.dashboard');
 })->name('dashboard');
 
+Route::get('/dashboard', function () {
+    return redirect()->route('dashboard');
+});
+
 // Auth
 Route::get('/signup', function () {
     return view('pages.auth.signup');
@@ -63,6 +67,10 @@ Route::prefix('customers')->name('customers.')->group(function () {
 Route::get('/reports', function () {
     return view('pages.reports.index');
 })->name('reports.index');
+
+Route::get('/reports/cash-register', function () {
+    return view('pages.reports.cash-register');
+})->name('reports.cash-register');
 
 // Settings
 Route::get('/settings', function () {

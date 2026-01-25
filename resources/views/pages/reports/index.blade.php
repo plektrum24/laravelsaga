@@ -4,38 +4,38 @@
 
 @section('content')
     <div x-data="{
-                    activeTab: new URLSearchParams(window.location.search).get('tab') || 'sales',
-                    dateFrom: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
-                    dateTo: new Date().toISOString().split('T')[0],
-                    isLoading: false,
+                            activeTab: new URLSearchParams(window.location.search).get('tab') || 'sales',
+                            dateFrom: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+                            dateTo: new Date().toISOString().split('T')[0],
+                            isLoading: false,
 
-                    // Mock Data for UI Visualization
-                    stats: {
-                        sales: { total: 15450000, count: 124, profit: 4500000 },
-                        stock: { total_value: 85400000, low_stock: 5, out_stock: 2 },
-                        purchase: { total: 8500000, count: 12 },
-                        profit_details: [
-                            { name: 'Kopi Kapal Api Mix', qty: 1240, revenue: 3100000, cost: 2480000, profit: 620000 },
-                            { name: 'Indomie Goreng', qty: 950, revenue: 2850000, cost: 2375000, profit: 475000 },
-                            { name: 'Aqua 600ml', qty: 500, revenue: 1500000, cost: 1000000, profit: 500000 },
-                            { name: 'Roti Tawar Sari Roti', qty: 200, revenue: 3000000, cost: 2400000, profit: 600000 },
-                            { name: 'Teh Pucuk Harum', qty: 350, revenue: 1225000, cost: 875000, profit: 350000 }
-                        ]
-                    },
+                            // Mock Data for UI Visualization
+                            stats: {
+                                sales: { total: 15450000, count: 124, profit: 4500000 },
+                                stock: { total_value: 85400000, low_stock: 5, out_stock: 2 },
+                                purchase: { total: 8500000, count: 12 },
+                                profit_details: [
+                                    { name: 'Kopi Kapal Api Mix', qty: 1240, revenue: 3100000, cost: 2480000, profit: 620000 },
+                                    { name: 'Indomie Goreng', qty: 950, revenue: 2850000, cost: 2375000, profit: 475000 },
+                                    { name: 'Aqua 600ml', qty: 500, revenue: 1500000, cost: 1000000, profit: 500000 },
+                                    { name: 'Roti Tawar Sari Roti', qty: 200, revenue: 3000000, cost: 2400000, profit: 600000 },
+                                    { name: 'Teh Pucuk Harum', qty: 350, revenue: 1225000, cost: 875000, profit: 350000 }
+                                ]
+                            },
 
-                    formatCurrency(amount) {
-                        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
-                    },
+                            formatCurrency(amount) {
+                                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+                            },
 
-                    init() {
-                        // Watch for tab changes to update URL without reload
-                        this.$watch('activeTab', value => {
-                            const url = new URL(window.location);
-                            url.searchParams.set('tab', value);
-                            window.history.pushState({}, '', url);
-                        });
-                    }
-                }">
+                            init() {
+                                // Watch for tab changes to update URL without reload
+                                this.$watch('activeTab', value => {
+                                    const url = new URL(window.location);
+                                    url.searchParams.set('tab', value);
+                                    window.history.pushState({}, '', url);
+                                });
+                            }
+                        }">
 
         <!-- Header -->
         <div class="mb-8">
@@ -119,6 +119,23 @@
                     <span class="font-bold text-gray-700 dark:text-gray-200">Laba Rugi</span>
                 </div>
                 <p class="text-xs text-gray-500">Analisa Profit</p>
+            </button>
+
+            <!-- Cash Register Report -->
+            <button @click="window.location.href = '{{ route('reports.cash-register') }}'"
+                class="relative p-4 rounded-2xl border border-gray-200 hover:border-teal-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-all text-left group">
+                <div class="flex items-center gap-3 mb-2">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center dark:bg-teal-900/30 dark:text-teal-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z">
+                            </path>
+                        </svg>
+                    </div>
+                    <span class="font-bold text-gray-700 dark:text-gray-200">Laporan Kas Harian</span>
+                </div>
+                <p class="text-xs text-gray-500">Fisik Uang & Shift</p>
             </button>
         </div>
 
