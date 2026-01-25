@@ -1,8 +1,7 @@
 <header x-data="{ 
   menuToggle: false,
   currentTenant: JSON.parse(localStorage.getItem('saga_tenant') || '{}'),
-  currentUser: @json(auth()->user()) || JSON.parse(localStorage.getItem('saga_user') || '{" name": "Demo User" , "role"
-  : "tenant_owner" , "email" : "demo@sagatoko.com" }') }"
+  currentUser: JSON.parse(localStorage.getItem('saga_user') || '{" name": "Guest" , "role" : "guest" }') }"
   class="sticky top-0 z-[999] flex w-full border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900">
   <div class="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
     <div
@@ -231,7 +230,7 @@
           </ul>
 
           <button type="button"
-            @click="localStorage.removeItem('saga_token'); localStorage.removeItem('saga_user'); localStorage.removeItem('saga_tenant'); localStorage.removeItem('saga_selected_branch'); window.location.href = '{{ route('dashboard') }}'"
+            @click="localStorage.removeItem('saga_token'); localStorage.removeItem('saga_user'); localStorage.removeItem('saga_tenant'); localStorage.removeItem('saga_selected_branch'); window.location.href = '{{ route('signin') }}'"
             class="group text-theme-sm mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
             Sign Out
           </button>

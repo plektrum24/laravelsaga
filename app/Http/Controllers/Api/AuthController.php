@@ -33,7 +33,8 @@ class AuthController extends Controller
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
-                        'role' => 'owner' // Placeholder logic, will connect to Employee table later
+                        'role' => $user->role,
+                        'branch_id' => $user->branch_id
                     ],
                     'token' => $token
                 ]

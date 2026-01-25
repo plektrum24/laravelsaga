@@ -4,104 +4,109 @@
 
 @section('content')
     <div x-data="{
-            stats: { today: { orders: 0, sales: 0 }, week: 0, month: 0, lowStockCount: 0, weeklyChart: [] },
-            priceLogs: [],
-            isLoading: true,
-            user: @json(auth()->user()),
+                stats: { today: { orders: 0, sales: 0 }, week: 0, month: 0, lowStockCount: 0, weeklyChart: [] },
+                priceLogs: [],
+                isLoading: true,
+                user: @json(auth()->user()),
 
-            async init() {
-                await this.fetchDashboard();
-                await this.fetchPriceLogs();
-            },
-
-            async fetchDashboard() {
-                try {
+                async init() {
                     const token = localStorage.getItem('saga_token');
-                    let url = '/api/reports/dashboard';
-
-                    // Handle branch selection if implemented in API
-                    const selectedBranch = localStorage.getItem('saga_selected_branch');
-                    const user = this.user || JSON.parse(localStorage.getItem('saga_user') || '{}');
-
-                    if (user.role === 'tenant_owner' && selectedBranch) {
-                        url += '?branch_id=' + selectedBranch;
-                    } else if (user.branch_id) {
-                        url += '?branch_id=' + user.branch_id;
+                    if (!token) {
+                        window.location.href = '{{ route('signin') }}';
+                        return;
                     }
+                    await this.fetchDashboard();
+                    await this.fetchPriceLogs();
+                },
 
-                    // Mocking data if API fails or for demo (Remove in production)
-                    // In exact migration we assume API works, but basic structure is needed.
-                    /*
-                    this.stats = {
-                        today: { orders: 12, sales: 15600000 },
-                        week: 45000000,
-                        lowStockCount: 3,
-                        weeklyChart: [
-                           { date: '2023-10-01', total: 500000 },
-                           { date: '2023-10-02', total: 1500000 },
-                           // ...
-                        ]
-                    };
-                    */
+                async fetchDashboard() {
+                    try {
+                        const token = localStorage.getItem('saga_token');
+                        let url = '/api/reports/dashboard';
 
-                    const response = await fetch(url, {
-                        headers: { 'Authorization': 'Bearer ' + token }
-                    });
+                        // Handle branch selection if implemented in API
+                        const selectedBranch = localStorage.getItem('saga_selected_branch');
+                        const user = this.user || JSON.parse(localStorage.getItem('saga_user') || '{}');
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success) {
-                            this.stats = data.data;
+                        if (user.role === 'tenant_owner' && selectedBranch) {
+                            url += '?branch_id=' + selectedBranch;
+                        } else if (user.branch_id) {
+                            url += '?branch_id=' + user.branch_id;
                         }
-                    }
-                } catch (error) {
-                    console.error('Dashboard fetch error:', error);
-                } finally {
-                    this.isLoading = false;
-                }
-            },
 
-            async fetchPriceLogs() {
-                try {
-                    const token = localStorage.getItem('saga_token');
-                    const response = await fetch('/api/products/reports/price-logs?limit=5', {
-                        headers: { 'Authorization': 'Bearer ' + token }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success) {
-                            this.priceLogs = data.data;
+                        // Mocking data if API fails or for demo (Remove in production)
+                        // In exact migration we assume API works, but basic structure is needed.
+                        /*
+                        this.stats = {
+                            today: { orders: 12, sales: 15600000 },
+                            week: 45000000,
+                            lowStockCount: 3,
+                            weeklyChart: [
+                               { date: '2023-10-01', total: 500000 },
+                               { date: '2023-10-02', total: 1500000 },
+                               // ...
+                            ]
+                        };
+                        */
+
+                        const response = await fetch(url, {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.stats = data.data;
+                            }
                         }
+                    } catch (error) {
+                        console.error('Dashboard fetch error:', error);
+                    } finally {
+                        this.isLoading = false;
                     }
-                } catch (error) {
-                    console.error('Fetch price logs error:', error);
-                }
-            },
+                },
 
-            formatCurrency(amount) {
-                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
-            }
-        }">
+                async fetchPriceLogs() {
+                    try {
+                        const token = localStorage.getItem('saga_token');
+                        const response = await fetch('/api/products/reports/price-logs?limit=5', {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.priceLogs = data.data;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Fetch price logs error:', error);
+                    }
+                },
+
+                formatCurrency(amount) {
+                    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
+                }
+            }">
         <!-- Subscription Expiry Warning Banner -->
         <div x-data="{ 
-                tenant: JSON.parse(localStorage.getItem('saga_tenant')),
-                get daysLeft() {
-                    if (!this.tenant?.subscription?.days_left) return -1;
-                    return this.tenant.subscription.days_left;
-                },
-                get showWarning() {
-                    return this.daysLeft >= 0 && this.daysLeft <= 7;
-                },
-                get warningColor() {
-                    if (this.daysLeft <= 1) return 'bg-red-500';
-                    if (this.daysLeft <= 3) return 'bg-orange-500';
-                    return 'bg-yellow-500';
-                },
-                formatDate(dateStr) {
-                    if (!dateStr) return '-';
-                    return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-                }
-            }" x-show="showWarning" class="mb-4" style="display: none;">
+                    tenant: JSON.parse(localStorage.getItem('saga_tenant')),
+                    get daysLeft() {
+                        if (!this.tenant?.subscription?.days_left) return -1;
+                        return this.tenant.subscription.days_left;
+                    },
+                    get showWarning() {
+                        return this.daysLeft >= 0 && this.daysLeft <= 7;
+                    },
+                    get warningColor() {
+                        if (this.daysLeft <= 1) return 'bg-red-500';
+                        if (this.daysLeft <= 3) return 'bg-orange-500';
+                        return 'bg-yellow-500';
+                    },
+                    formatDate(dateStr) {
+                        if (!dateStr) return '-';
+                        return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                    }
+                }" x-show="showWarning" class="mb-4" style="display: none;">
             <div :class="warningColor" class="rounded-xl p-4 text-white flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
