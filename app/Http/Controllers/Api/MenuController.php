@@ -38,8 +38,10 @@ class MenuController extends Controller
             foreach ($section['items'] as $item) {
                 // Check Visibility
                 // Allow if 'all' is in config OR user has at least one matching role
-                $allowedRoles = $item['roles'];
-                $hasAccess = in_array('all', $allowedRoles) || !empty(array_intersect($userRoles, $allowedRoles));
+                $allowedRoles = array_map('strtolower', $item['roles']);
+                $userRolesLower = array_map('strtolower', $userRoles);
+
+                $hasAccess = in_array('all', $allowedRoles) || !empty(array_intersect($userRolesLower, $allowedRoles));
 
                 if ($hasAccess) {
                     $filteredItems[] = $item;
