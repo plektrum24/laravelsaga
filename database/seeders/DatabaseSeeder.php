@@ -14,10 +14,19 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Create User
-        \App\Models\User::factory()->create([
-            'name' => 'Demo Owner',
-            'email' => 'admin@sagatoko.com',
-            'password' => bcrypt('password'), // Default password
+        // 1. Create User (Manual instead of Factory to avoid Faker error in Prod)
+        \App\Models\User::firstOrCreate(
+            ['email' => 'admin@sagatoko.com'],
+            [
+                'name' => 'Demo Owner',
+                'password' => bcrypt('password'),
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // Call Operational Seeder
+        $this->call([
+            CreateOperationalUsersSeeder::class,
         ]);
 
         // 2. Create Main Branch
