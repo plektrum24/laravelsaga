@@ -3,48 +3,46 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Handle incoming login request.
-     */
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials)) {
-            $user = Auth::user();
+        $user = User::where('email', $request->email)->first();
 
-            // Generate Sanctum Token
-            $token = $user->createToken('saga-token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful',
-                'data' => [
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'role' => $user->role,
-                        'branch_id' => $user->branch_id
-                    ],
-                    'token' => $token
-                ]
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['Kredensial yang diberikan salah.'],
             ]);
         }
 
+        // Revoke all tokens mostly for single session strictness, or just create new one
+        // $user->tokens()->delete(); 
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Load relationships needed for frontend store
+        $user->load(['tenant', 'branch']);
+
         return response()->json([
-            'success' => false,
-            'message' => 'Invalid credentials'
-        ], 401);
+            'success' => true,
+            'message' => 'Login berhasil',
+            'data' => [
+                'token' => $token,
+                'user' => $user,
+                'tenant' => $user->tenant
+            ]
+        ]);
     }
 
     public function logout(Request $request)
@@ -53,7 +51,20 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Logged out successfully'
+            'message' => 'Logout berhasil'
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        $user = $request->user()->load(['tenant', 'branch']);
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $user,
+                'tenant' => $user->tenant
+            ]
         ]);
     }
 }

@@ -6,20 +6,18 @@ use App\Traits\MultiTenantable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Customer extends Model
+class Unit extends Model
 {
     use HasFactory, MultiTenantable;
 
     protected $fillable = [
         'tenant_id',
         'name',
-        'email',
-        'phone',
-        'address',
+        'abbreviation',
     ];
 
-    public function transactions()
+    public function productUnits()
     {
-        return $this->hasMany(Transaction::class);
+        return $this->hasMany(ProductUnit::class);
     }
 }

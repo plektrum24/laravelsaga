@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name', 100); // Nama Toko/Usaha
             $table->string('owner_name', 100);
-            $table->enum('business_type', ['retail', 'barber', 'laundry'])->default('retail');
+            $table->enum('business_type', ['retail', 'barber', 'laundry', 'car_wash', 'cafe'])->default('retail');
             $table->enum('subscription_plan', ['basic', 'pro', 'enterprise'])->default('basic');
             $table->string('domain', 100)->unique()->nullable(); // Subdomain/Domain
             $table->string('database_name', 100)->nullable(); // Jika pakai multi-db

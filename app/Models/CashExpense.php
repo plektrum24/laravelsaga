@@ -6,29 +6,29 @@ use App\Traits\MultiTenantable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Branch extends Model
+class CashExpense extends Model
 {
     use HasFactory, MultiTenantable;
 
     protected $fillable = [
         'tenant_id',
-        'name',
-        'address',
-        'phone',
-        'is_active',
+        'cash_register_id',
+        'user_id',
+        'amount',
+        'note',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'amount' => 'decimal:2',
     ];
 
-    public function users()
+    public function cashRegister()
     {
-        return $this->hasMany(User::class);
+        return $this->belongsTo(CashRegister::class);
     }
 
-    public function transactions()
+    public function user()
     {
-        return $this->hasMany(Transaction::class);
+        return $this->belongsTo(User::class);
     }
 }
