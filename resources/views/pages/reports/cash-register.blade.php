@@ -4,66 +4,66 @@
 
 @section('content')
     <div x-data="{
-            registers: [],
-            isLoading: true,
-            dateFrom: new Date().toISOString().split('T')[0],
-            dateTo: new Date().toISOString().split('T')[0],
+                registers: [],
+                isLoading: true,
+                dateFrom: new Date().toISOString().split('T')[0],
+                dateTo: new Date().toISOString().split('T')[0],
 
-            async fetchRegisters() {
-                this.isLoading = true;
-                try {
-                    // Mock Data for now (since API endpoint for listing registers is not yet created, only current/open/close)
-                    // We should add a listing endpoint later. 
-                    // For now, let's create a realistic mock to visualize the UI.
+                async fetchRegisters() {
+                    this.isLoading = true;
+                    try {
+                        // Mock Data for now (since API endpoint for listing registers is not yet created, only current/open/close)
+                        // We should add a listing endpoint later. 
+                        // For now, let's create a realistic mock to visualize the UI.
 
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                        await new Promise(resolve => setTimeout(resolve, 500));
 
-                    this.registers = [
-                        {
-                            id: 1,
-                            user_name: 'Kasir Retail',
-                            opened_at: '2024-01-25 08:00:00',
-                            closed_at: '2024-01-25 16:00:00',
-                            start_cash: 500000,
-                            total_cash_sales: 2500000,
-                            total_expenses: 150000,
-                            end_cash: 2850000,
-                            diff_amount: 0,
-                            status: 'closed'
-                        },
-                        {
-                            id: 2,
-                            user_name: 'Kasir Retail',
-                            opened_at: '2024-01-25 16:00:00',
-                            closed_at: null,
-                            start_cash: 500000,
-                            total_cash_sales: 1200000,
-                            total_expenses: 0,
-                            end_cash: null,
-                            diff_amount: 0,
-                            status: 'open'
-                        }
-                    ];
-                } catch (error) {
-                    console.error(error);
-                } finally {
-                    this.isLoading = false;
+                        this.registers = [
+                            {
+                                id: 1,
+                                user_name: 'Kasir Retail',
+                                opened_at: '2024-01-25 08:00:00',
+                                closed_at: '2024-01-25 16:00:00',
+                                start_cash: 500000,
+                                total_cash_sales: 2500000,
+                                total_expenses: 150000,
+                                end_cash: 2850000,
+                                diff_amount: 0,
+                                status: 'closed'
+                            },
+                            {
+                                id: 2,
+                                user_name: 'Kasir Retail',
+                                opened_at: '2024-01-25 16:00:00',
+                                closed_at: null,
+                                start_cash: 500000,
+                                total_cash_sales: 1200000,
+                                total_expenses: 0,
+                                end_cash: null,
+                                diff_amount: 0,
+                                status: 'open'
+                            }
+                        ];
+                    } catch (error) {
+                        console.error(error);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                formatCurrency(amount) {
+                     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
+                },
+
+                formatDateTime(dateStr) {
+                    if(!dateStr) return '-';
+                    return new Date(dateStr).toLocaleString('id-ID');
+                },
+
+                init() {
+                    this.fetchRegisters();
                 }
-            },
-
-            formatCurrency(amount) {
-                 return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
-            },
-
-            formatDateTime(dateStr) {
-                if(!dateStr) return '-';
-                return new Date(dateStr).toLocaleString('id-ID');
-            },
-
-            init() {
-                this.fetchRegisters();
-            }
-        }">
+            }">
         <!-- Header -->
         <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>

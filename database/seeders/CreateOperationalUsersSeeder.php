@@ -35,7 +35,7 @@ class CreateOperationalUsersSeeder extends Seeder
             ]
         );
         $kasir->assignRole($roleKasir);
-        $this->command->info("User Created: kasir@sagatoko.com / 12345678");
+        $this->command->info("User Created: kasir@sagatoko.com / 12345678 (Tenant: testretail)");
 
         // 4. Create Gudang User
         $gudang = User::firstOrCreate(
@@ -44,10 +44,39 @@ class CreateOperationalUsersSeeder extends Seeder
                 'name' => 'Staff Gudang',
                 'password' => bcrypt('12345678'),
                 'tenant_id' => $tenant->id,
-                'role' => 'Gudang' // Legacy column fallback
+                'role' => 'Gudang'
             ]
         );
         $gudang->assignRole($roleGudang);
-        $this->command->info("User Created: gudang@sagatoko.com / 12345678");
+        $this->command->info("User Created: gudang@sagatoko.com / 12345678 (Tenant: testretail)");
+
+        // 5. Create Users for "Saga Retail" (Tenant 1) if not exists
+        // This ensures users exist for the main demo tenant too.
+        $tenant2 = Tenant::where('domain', 'sagaretail')->first();
+        if ($tenant2) {
+            $kasir2 = User::firstOrCreate(
+                ['email' => 'kasir@sagaretail.com'],
+                [
+                    'name' => 'Kasir Saga',
+                    'password' => bcrypt('12345678'),
+                    'tenant_id' => $tenant2->id,
+                    'role' => 'Kasir'
+                ]
+            );
+            $kasir2->assignRole($roleKasir);
+            $this->command->info("User Created: kasir@sagaretail.com / 12345678 (Tenant: sagaretail)");
+
+            $gudang2 = User::firstOrCreate(
+                ['email' => 'gudang@sagaretail.com'],
+                [
+                    'name' => 'Gudang Saga',
+                    'password' => bcrypt('12345678'),
+                    'tenant_id' => $tenant2->id,
+                    'role' => 'Gudang'
+                ]
+            );
+            $gudang2->assignRole($roleGudang);
+            $this->command->info("User Created: gudang@sagaretail.com / 12345678 (Tenant: sagaretail)");
+        }
     }
 }
