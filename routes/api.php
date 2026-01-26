@@ -9,7 +9,7 @@ use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 
 // Public Routes
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login']);
 Route::get('/login', function () {
     return response()->json(['message' => 'Unauthorized'], 401);
 })->name('login');
@@ -19,7 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
-    
+
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
@@ -32,7 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Resources
     Route::apiResource('products', ProductController::class);
     Route::apiResource('customers', CustomerController::class);
-    
+
     // Transactions / POS
     Route::get('/transactions', [TransactionController::class, 'index']);
     Route::post('/transactions', [TransactionController::class, 'store']); // Checkout
