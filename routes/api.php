@@ -19,6 +19,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::get('/user', [AuthController::class, 'me']); // Alias for sidebar
+
+    // Menus
+    Route::get('/user/menus', [\App\Http\Controllers\Api\MenuController::class, 'getMenus']);
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
