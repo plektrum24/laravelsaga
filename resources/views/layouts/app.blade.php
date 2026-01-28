@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-gray-50 dark:bg-black">
 
 <head>
     <meta charset="utf-8">
@@ -15,6 +15,10 @@
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
         /* SweetAlert2 Button Overrides for Brand Consistency */
         .swal2-confirm {
             background-color: #3b82f6 !important;
@@ -51,6 +55,11 @@
 
         [x-cloak] {
             display: none !important;
+        }
+
+        /* Force Zoom Override */
+        body {
+            zoom: 0.8 !important;
         }
     </style>
 
@@ -209,21 +218,23 @@
             };
             setTimeout(() => {
                 window.hidePreloader?.();
-        }, 5000);
+            }, 5000);
         })();
     </script>
 </head>
 
-<body class="bg-gray-50 dark:bg-black" x-data="{ 
+<body class="h-full bg-gray-50 dark:bg-black" x-data="{ 
       page: '{{ Route::currentRouteName() }}', 
       loaded: true, 
       darkMode: JSON.parse(localStorage.getItem('darkMode') || 'false'), 
       stickyMenu: false, 
       sidebarToggle: false, 
       scrollTop: false,
+      currentUser: JSON.parse(localStorage.getItem('saga_user')) || { name: 'Demo User', role: 'tenant_owner', email: 'demo@sagatoko.com' },
+      notifications: [],
       ...priceCheckerMixin(),
       
-      init() {
+      async init() {
          Alpine.store('sidebar', { 
             open: JSON.parse(localStorage.getItem('sidebarOpen')) || false, 
             toggle() { 
@@ -236,6 +247,30 @@
             if(value) document.documentElement.classList.add('dark');
             else document.documentElement.classList.remove('dark');
          });
+
+         // Sync Profile Global
+         const token = localStorage.getItem('saga_token');
+         if (token) {
+             try {
+                const res = await fetch('/api/user', { headers: { 'Authorization': 'Bearer ' + token } });
+                if (res.ok) {
+                    const data = await res.json();
+                    if(data.id) {
+                        this.currentUser = data;
+                        localStorage.setItem('saga_user', JSON.stringify(data));
+                    }
+                }
+             } catch(e) {}
+             
+             // Fetch Notifications (Mock or Real)
+             try {
+                const resNo = await fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + token } });
+                if (resNo.ok) {
+                    const dataNo = await resNo.json();
+                    if(dataNo.success) this.notifications = dataNo.data;
+                }
+             } catch(e) {}
+         }
       }
     }">
 
@@ -249,24 +284,24 @@
     </div>
     <!-- Preloader End -->
 
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex min-h-[125vh]">
         <!-- ===== Sidebar Start ===== -->
         @include('partials.sidebar')
         <!-- ===== Sidebar End ===== -->
 
         <!-- ===== Content Area Start ===== -->
-        <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <div class="relative flex flex-1 flex-col transition-all duration-300 ease-in-out">
             <!-- Small Device Overlay -->
             <div @click="$store.sidebar.open = false" :class="$store.sidebar.open ? 'block lg:hidden' : 'hidden'"
-                class="fixed w-full h-screen z-[9999] bg-gray-900/50"></div>
+                class="fixed w-full h-[125vh] z-[9999] bg-gray-900/50"></div>
 
             <!-- ===== Header Start ===== -->
             @include('partials.header')
             <!-- ===== Header End ===== -->
 
             <!-- ===== Main Content Start ===== -->
-            <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-black">
-                <div class="mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
+            <main class="flex-1 bg-gray-50 dark:bg-black">
+                <div class="mx-auto w-full p-4 sm:p-6 md:p-8">
                     @if (session('success'))
                         <x-alert.alert type="success" title="Success!" class="mb-6">
                             {{ session('success') }}

@@ -4,94 +4,94 @@
 
 @section('content')
     <div x-data="{
-            page: 'categories',
-            categories: [],
-            isLoading: true,
-            showModal: false,
-            editMode: false,
-            currentCategory: { name: '' },
+                    page: 'categories',
+                    categories: [],
+                    isLoading: true,
+                    showModal: false,
+                    editMode: false,
+                    currentCategory: { name: '' },
 
-            async init() {
-                await this.fetchCategories();
-            },
+                    async init() {
+                        await this.fetchCategories();
+                    },
 
-            async fetchCategories() {
-                try {
-                    const token = localStorage.getItem('saga_token');
-                    const response = await fetch('/api/products/categories', { headers: { 'Authorization': 'Bearer ' + token } });
-                    const data = await response.json();
-                    if (data.success) this.categories = data.data;
-                } catch (error) {
-                    console.error('Fetch error:', error);
-                } finally {
-                    this.isLoading = false;
-                }
-            },
+                    async fetchCategories() {
+                        try {
+                            const token = localStorage.getItem('saga_token');
+                            const response = await fetch('/api/products/categories', { headers: { 'Authorization': 'Bearer ' + token } });
+                            const data = await response.json();
+                            if (data.success) this.categories = data.data;
+                        } catch (error) {
+                            console.error('Fetch error:', error);
+                        } finally {
+                            this.isLoading = false;
+                        }
+                    },
 
-            openAddModal() {
-                this.editMode = false;
-                this.currentCategory = { name: '' };
-                this.showModal = true;
-            },
+                    openAddModal() {
+                        this.editMode = false;
+                        this.currentCategory = { name: '' };
+                        this.showModal = true;
+                    },
 
-            openEditModal(cat) {
-                this.editMode = true;
-                this.currentCategory = { ...cat };
-                this.showModal = true;
-            },
+                    openEditModal(cat) {
+                        this.editMode = true;
+                        this.currentCategory = { ...cat };
+                        this.showModal = true;
+                    },
 
-            async saveCategory() {
-                const token = localStorage.getItem('saga_token');
-                const url = this.editMode ? '/api/products/categories/' + this.currentCategory.id : '/api/products/categories';
-                const method = this.editMode ? 'PUT' : 'POST';
+                    async saveCategory() {
+                        const token = localStorage.getItem('saga_token');
+                        const url = this.editMode ? '/api/products/categories/' + this.currentCategory.id : '/api/products/categories';
+                        const method = this.editMode ? 'PUT' : 'POST';
 
-                const response = await fetch(url, {
-                    method,
-                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: this.currentCategory.name })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    this.showModal = false;
-                    await this.fetchCategories();
-                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kategori berhasil disimpan', timer: 1500, showConfirmButton: false });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
-                }
-            },
+                        const response = await fetch(url, {
+                            method,
+                            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: this.currentCategory.name })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showModal = false;
+                            await this.fetchCategories();
+                            Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kategori berhasil disimpan', timer: 1500, showConfirmButton: false });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                        }
+                    },
 
-            async deleteCategory(id) {
-                const result = await Swal.fire({
-                    title: 'Hapus Kategori?',
-                    text: 'Data kategori akan dihapus secara permanen!',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Ya, Hapus!',
-                    cancelButtonText: 'Batal'
-                });
+                    async deleteCategory(id) {
+                        const result = await Swal.fire({
+                            title: 'Hapus Kategori?',
+                            text: 'Data kategori akan dihapus secara permanen!',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#6b7280',
+                            confirmButtonText: 'Ya, Hapus!',
+                            cancelButtonText: 'Batal'
+                        });
 
-                if (!result.isConfirmed) return;
+                        if (!result.isConfirmed) return;
 
-                const token = localStorage.getItem('saga_token');
-                try {
-                    const response = await fetch('/api/products/categories/' + id, {
-                        method: 'DELETE',
-                        headers: { 'Authorization': 'Bearer ' + token }
-                    });
-                    const data = await response.json();
-                    if (!data.success) {
-                        Swal.fire({ icon: 'error', title: 'Gagal Menghapus', text: data.message || 'Kategori tidak dapat dihapus' });
-                        return;
+                        const token = localStorage.getItem('saga_token');
+                        try {
+                            const response = await fetch('/api/products/categories/' + id, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': 'Bearer ' + token }
+                            });
+                            const data = await response.json();
+                            if (!data.success) {
+                                Swal.fire({ icon: 'error', title: 'Gagal Menghapus', text: data.message || 'Kategori tidak dapat dihapus' });
+                                return;
+                            }
+                            Swal.fire({ icon: 'success', title: 'Terhapus!', text: 'Kategori berhasil dihapus', timer: 1500, showConfirmButton: false });
+                            await this.fetchCategories();
+                        } catch (error) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+                        }
                     }
-                    Swal.fire({ icon: 'success', title: 'Terhapus!', text: 'Kategori berhasil dihapus', timer: 1500, showConfirmButton: false });
-                    await this.fetchCategories();
-                } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
-                }
-            }
-        }" x-init="init()">
+                }" x-init="init()">
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">Categories</h1>
@@ -119,7 +119,7 @@
                             <div>
                                 <h3 class="font-medium text-gray-800 dark:text-white" x-text="cat.name">
                                     Category</h3>
-                                <p class="text-xs text-gray-400" x-text="(cat.product_count || 0) + ' products'">0 products
+                                <p class="text-xs text-gray-400" x-text="(cat.products_count || 0) + ' products'">0 products
                                 </p>
                             </div>
                         </div>
@@ -151,16 +151,23 @@
             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md" @click.away="showModal = false">
-                <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4"
-                    x-text="editMode ? 'Edit Category' : 'Add Category'"></h2>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"
+                @click.away="showModal = false">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white"
+                        x-text="editMode ? 'Edit Category' : 'Add Category'"></h2>
+                </div>
                 <form @submit.prevent="saveCategory()">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Kategori</label>
-                        <input type="text" x-model="currentCategory.name" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-900 dark:border-gray-600 dark:text-white">
+                    <div class="p-6">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama
+                                Kategori</label>
+                            <input type="text" x-model="currentCategory.name" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-900 dark:border-gray-600 dark:text-white">
+                        </div>
                     </div>
-                    <div class="flex gap-3">
+                    <div
+                        class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex justify-end gap-3">
                         <button type="button" @click="showModal = false"
                             class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-gray-300">Batal</button>
                         <button type="submit"

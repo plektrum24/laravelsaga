@@ -41,11 +41,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 3. Create Units
-        \Illuminate\Support\Facades\DB::table('units')->insert([
-            ['name' => 'Pcs', 'sort_order' => 1],
-            ['name' => 'Box', 'sort_order' => 2],
-            ['name' => 'Pack', 'sort_order' => 3],
-            ['name' => 'Kg', 'sort_order' => 4],
+        $this->call([
+            UnitSeeder::class,
         ]);
 
         // 4. Create Categories

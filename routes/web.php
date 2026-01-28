@@ -25,7 +25,40 @@ Route::get('/signin', function () {
     return view('pages.auth.signin');
 })->name('signin');
 
-// Inventory Routes loaded from Retail Module
+// Inventory Routes
+Route::prefix('inventory')->name('inventory.')->group(function () {
+    Route::get('/index', function () {
+        return view('pages.inventory.index');
+    })->name('index');
+
+    Route::get('/categories', function () {
+        return view('pages.inventory.categories');
+    })->name('categories');
+
+    Route::get('/stock', function () {
+        return view('pages.inventory.stock-management');
+    })->name('stock');
+
+    Route::get('/receiving', function () {
+        return view('pages.inventory.receiving.index');
+    })->name('receiving.index');
+
+    Route::get('/receiving/create', function () {
+        return view('pages.inventory.receiving.create');
+    })->name('receiving.create');
+
+    Route::get('/suppliers', function () {
+        return view('pages.inventory.suppliers');
+    })->name('suppliers');
+
+    Route::get('/transfer', function () {
+        return view('pages.inventory.transfer');
+    })->name('transfer');
+
+    Route::get('/deadstock', function () {
+        return view('pages.inventory.deadstock');
+    })->name('deadstock');
+});
 
 // Finance
 Route::prefix('finance')->name('finance.')->group(function () {

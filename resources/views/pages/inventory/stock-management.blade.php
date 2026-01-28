@@ -4,242 +4,242 @@
 
 @section('content')
     <div x-data="{
-            page: 'stockManagement',
-            currentTab: 'stock', // 'stock' or 'expiry'
-            products: [],
-            expiryItems: [],
-            categories: [],
-            isLoading: true,
-            searchQuery: '',
-            selectedCategory: '',
-            sortBy: 'name_asc',
-            showSortMenu: false,
-            showExportMenu: false,
-            showAdjustModal: false,
-            selectedProduct: null,
-            adjustType: 'add',
-            adjustQty: 0,
-            adjustUnit: null,
-            adjustReason: '',
-            currentPage: 1,
-            totalPages: 1,
-            totalItems: 0,
-            itemsPerPage: 20,
-            totalAsset: 0,
-            sortOptions: [
-                { value: 'name_asc', label: 'Nama A-Z' },
-                { value: 'name_desc', label: 'Nama Z-A' },
-                { value: 'stock_asc', label: 'Stock Rendah' },
-                { value: 'stock_desc', label: 'Stock Tinggi' }
-            ],
+                    page: 'stockManagement',
+                    currentTab: 'stock', // 'stock' or 'expiry'
+                    products: [],
+                    expiryItems: [],
+                    categories: [],
+                    isLoading: true,
+                    searchQuery: '',
+                    selectedCategory: '',
+                    sortBy: 'name_asc',
+                    showSortMenu: false,
+                    showExportMenu: false,
+                    showAdjustModal: false,
+                    selectedProduct: null,
+                    adjustType: 'add',
+                    adjustQty: 0,
+                    adjustUnit: null,
+                    adjustReason: '',
+                    currentPage: 1,
+                    totalPages: 1,
+                    totalItems: 0,
+                    itemsPerPage: 20,
+                    totalAsset: 0,
+                    sortOptions: [
+                        { value: 'name_asc', label: 'Nama A-Z' },
+                        { value: 'name_desc', label: 'Nama Z-A' },
+                        { value: 'stock_asc', label: 'Stock Rendah' },
+                        { value: 'stock_desc', label: 'Stock Tinggi' }
+                    ],
 
-            async init() {
-                await Promise.all([
-                    this.fetchProducts(),
-                    this.fetchCategories(),
-                    this.fetchTotalAsset()
-                ]);
-            },
+                    async init() {
+                        await Promise.all([
+                            this.fetchProducts(),
+                            this.fetchCategories(),
+                            this.fetchTotalAsset()
+                        ]);
+                    },
 
-            async fetchTotalAsset() {
-                try {
-                    const token = localStorage.getItem('saga_token');
-                    const selectedBranch = localStorage.getItem('saga_selected_branch');
-                    let url = '/api/reports/assets';
-                    if (selectedBranch) url += '?branch_id=' + selectedBranch;
+                    async fetchTotalAsset() {
+                        try {
+                            const token = localStorage.getItem('saga_token');
+                            const selectedBranch = localStorage.getItem('saga_selected_branch');
+                            let url = '/api/reports/assets';
+                            if (selectedBranch) url += '?branch_id=' + selectedBranch;
 
-                    const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-                    const data = await response.json();
-                    if (data.success) {
-                        this.totalAsset = data.data.totalAsset;
+                            const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.totalAsset = data.data.totalAsset;
+                            }
+                        } catch (error) {
+                            console.error('Fetch asset error:', error);
+                        }
+                    },
+
+                    async fetchProducts(resetPage = true) {
+                        try {
+                            if (resetPage) this.currentPage = 1;
+                            const token = localStorage.getItem('saga_token');
+                            const selectedBranch = localStorage.getItem('saga_selected_branch');
+
+                            let url = `/api/products?page=${this.currentPage}&limit=${this.itemsPerPage}&sort=${this.sortBy}&`;
+                            if (this.selectedCategory) url += 'category_id=' + this.selectedCategory + '&';
+                            if (this.searchQuery) url += 'search=' + this.searchQuery + '&';
+                            if (selectedBranch) url += 'branch_id=' + selectedBranch;
+
+                            const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.products = data.data.products;
+                                this.totalPages = data.data.pagination.totalPages || 1;
+                                this.totalItems = data.data.pagination.total || 0;
+                                this.fetchTotalAsset();
+                            }
+                        } catch (error) {
+                            console.error('Fetch error:', error);
+                        } finally {
+                            this.isLoading = false;
+                        }
+                    },
+
+                    async fetchCategories() {
+                        try {
+                            const token = localStorage.getItem('saga_token');
+                            const response = await fetch('/api/products/categories', { headers: { 'Authorization': 'Bearer ' + token } });
+                            const data = await response.json();
+                            if (data.success) this.categories = data.data;
+                        } catch (error) {
+                            console.error('Fetch categories error:', error);
+                        }
+                    },
+
+                    async fetchExpiryItems() {
+                        this.isLoading = true;
+                        try {
+                            const token = localStorage.getItem('saga_token');
+                            const response = await fetch('/api/products/expiry?days=60', { headers: { 'Authorization': 'Bearer ' + token } });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.expiryItems = data.data;
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            this.isLoading = false;
+                        }
+                    },
+
+                    formatDate(dateStr) {
+                        if (!dateStr) return '-';
+                        return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                    },
+
+                    getExpiryColorStatus(days) {
+                        if (days <= 30) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                        if (days <= 60) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+                        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+                    },
+
+                    sortProducts() {
+                        this.showSortMenu = false;
+                        this.fetchProducts();
+                    },
+
+                    sortLabel() {
+                        return this.sortOptions.find(o => o.value === this.sortBy)?.label || 'Sort';
+                    },
+
+                    goToPage(page) {
+                        if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+                            this.currentPage = page;
+                            this.fetchProducts(false);
+                        }
+                    },
+                    prevPage() { if (this.currentPage > 1) this.goToPage(this.currentPage - 1); },
+                    nextPage() { if (this.currentPage < this.totalPages) this.goToPage(this.currentPage + 1); },
+
+                    get paginationRange() {
+                        const range = [];
+                        const delta = 2;
+                        const left = Math.max(1, this.currentPage - delta);
+                        const right = Math.min(this.totalPages, this.currentPage + delta);
+                        if (left > 1) range.push({ type: 'page', value: 1 });
+                        if (left > 2) range.push({ type: 'ellipsis', value: 'left' });
+                        for (let i = left; i <= right; i++) {
+                            range.push({ type: 'page', value: i });
+                        }
+                        if (right < this.totalPages - 1) range.push({ type: 'ellipsis', value: 'right' });
+                        if (right < this.totalPages) range.push({ type: 'page', value: this.totalPages });
+                        return range;
+                    },
+
+                    openAdjustModal(product, unit = null) {
+                        this.selectedProduct = product;
+                        this.adjustType = 'add';
+                        this.adjustQty = 0;
+                        this.adjustReason = '';
+                        this.adjustUnit = unit || (product.units?.find(u => u.is_base_unit) || product.units?.[0] || { conversion_qty: 1, unit_name: 'Pcs' });
+                        this.showAdjustModal = true;
+                    },
+
+                    async saveAdjustment() {
+                        if (this.adjustQty <= 0) { Swal.fire({ icon: 'error', title: 'Error', text: 'Quantity harus lebih dari 0' }); return; }
+                        const token = localStorage.getItem('saga_token');
+                        const conversionQty = parseFloat(this.adjustUnit?.conversion_qty) || 1;
+                        const baseUnitQty = this.adjustQty * conversionQty;
+                        const selectedBranch = localStorage.getItem('saga_selected_branch');
+
+                        const payload = {
+                            type: this.adjustType,
+                            quantity: baseUnitQty,
+                            reason: this.adjustReason + (conversionQty > 1 ? ` (${this.adjustQty} ${this.adjustUnit?.unit_name})` : ''),
+                            branch_id: selectedBranch ? parseInt(selectedBranch) : null
+                        };
+
+                        const response = await fetch('/api/products/adjust-stock/' + this.selectedProduct.id, {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1500, showConfirmButton: false });
+                            this.showAdjustModal = false;
+                            await this.fetchProducts(false);
+                        } else { Swal.fire({ icon: 'error', title: 'Gagal', text: data.message }); }
+                    },
+
+                    async resetAllStock() {
+                        const result = await Swal.fire({
+                            title: 'KOSONGKAN SEMUA STOCK?',
+                            text: 'Semua stock produk akan diset ke 0. Aksi ini tidak dapat dibatalkan!',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            confirmButtonText: 'Ya, Kosongkan!'
+                        });
+                        if (!result.isConfirmed) return;
+
+                        const token = localStorage.getItem('saga_token');
+                        const response = await fetch('/api/products/reset-all-stock', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1500, showConfirmButton: false });
+                            await this.fetchProducts(false);
+                        } else { Swal.fire({ icon: 'error', title: 'Gagal', text: data.message }); }
+                    },
+
+                    exportStock(type) {
+                        this.showExportMenu = false;
+                        const token = localStorage.getItem('saga_token');
+                        const url = type === 'excel' ?
+                            '/api/export/stock/excel?token=' + token :
+                            '/api/export/stock/pdf?token=' + token;
+                        window.open(url, '_blank');
+                    },
+
+                    formatCurrency(amount) {
+                        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
+                    },
+
+                    formatNumber(num) {
+                        const n = parseFloat(num) || 0;
+                        return n % 1 === 0 ? n.toString() : n.toFixed(1);
+                    },
+
+                    getStockColor(product) {
+                        const stock = parseFloat(product.stock) || 0;
+                        const minStock = parseFloat(product.min_stock) || 0;
+                        if (stock <= 0) return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+                        if (stock <= minStock) return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400';
+                        return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
                     }
-                } catch (error) {
-                    console.error('Fetch asset error:', error);
-                }
-            },
-
-            async fetchProducts(resetPage = true) {
-                try {
-                    if (resetPage) this.currentPage = 1;
-                    const token = localStorage.getItem('saga_token');
-                    const selectedBranch = localStorage.getItem('saga_selected_branch');
-
-                    let url = `/api/products?page=${this.currentPage}&limit=${this.itemsPerPage}&sort=${this.sortBy}&`;
-                    if (this.selectedCategory) url += 'category_id=' + this.selectedCategory + '&';
-                    if (this.searchQuery) url += 'search=' + this.searchQuery + '&';
-                    if (selectedBranch) url += 'branch_id=' + selectedBranch;
-
-                    const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-                    const data = await response.json();
-                    if (data.success) {
-                        this.products = data.data.products;
-                        this.totalPages = data.data.pagination.totalPages || 1;
-                        this.totalItems = data.data.pagination.total || 0;
-                        this.fetchTotalAsset();
-                    }
-                } catch (error) {
-                    console.error('Fetch error:', error);
-                } finally {
-                    this.isLoading = false;
-                }
-            },
-
-            async fetchCategories() {
-                try {
-                    const token = localStorage.getItem('saga_token');
-                    const response = await fetch('/api/products/categories', { headers: { 'Authorization': 'Bearer ' + token } });
-                    const data = await response.json();
-                    if (data.success) this.categories = data.data;
-                } catch (error) {
-                    console.error('Fetch categories error:', error);
-                }
-            },
-
-            async fetchExpiryItems() {
-                this.isLoading = true;
-                try {
-                    const token = localStorage.getItem('saga_token');
-                    const response = await fetch('/api/products/expiry?days=60', { headers: { 'Authorization': 'Bearer ' + token } });
-                    const data = await response.json();
-                    if (data.success) {
-                        this.expiryItems = data.data;
-                    }
-                } catch (e) {
-                    console.error(e);
-                } finally {
-                    this.isLoading = false;
-                }
-            },
-
-            formatDate(dateStr) {
-                if (!dateStr) return '-';
-                return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-            },
-
-            getExpiryColorStatus(days) {
-                if (days <= 30) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-                if (days <= 60) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
-                return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-            },
-
-            sortProducts() {
-                this.showSortMenu = false;
-                this.fetchProducts();
-            },
-
-            sortLabel() {
-                return this.sortOptions.find(o => o.value === this.sortBy)?.label || 'Sort';
-            },
-
-            goToPage(page) {
-                if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
-                    this.currentPage = page;
-                    this.fetchProducts(false);
-                }
-            },
-            prevPage() { if (this.currentPage > 1) this.goToPage(this.currentPage - 1); },
-            nextPage() { if (this.currentPage < this.totalPages) this.goToPage(this.currentPage + 1); },
-
-            get paginationRange() {
-                const range = [];
-                const delta = 2;
-                const left = Math.max(1, this.currentPage - delta);
-                const right = Math.min(this.totalPages, this.currentPage + delta);
-                if (left > 1) range.push({ type: 'page', value: 1 });
-                if (left > 2) range.push({ type: 'ellipsis', value: 'left' });
-                for (let i = left; i <= right; i++) {
-                    range.push({ type: 'page', value: i });
-                }
-                if (right < this.totalPages - 1) range.push({ type: 'ellipsis', value: 'right' });
-                if (right < this.totalPages) range.push({ type: 'page', value: this.totalPages });
-                return range;
-            },
-
-            openAdjustModal(product, unit = null) {
-                this.selectedProduct = product;
-                this.adjustType = 'add';
-                this.adjustQty = 0;
-                this.adjustReason = '';
-                this.adjustUnit = unit || (product.units?.find(u => u.is_base_unit) || product.units?.[0] || { conversion_qty: 1, unit_name: 'Pcs' });
-                this.showAdjustModal = true;
-            },
-
-            async saveAdjustment() {
-                if (this.adjustQty <= 0) { Swal.fire({ icon: 'error', title: 'Error', text: 'Quantity harus lebih dari 0' }); return; }
-                const token = localStorage.getItem('saga_token');
-                const conversionQty = parseFloat(this.adjustUnit?.conversion_qty) || 1;
-                const baseUnitQty = this.adjustQty * conversionQty;
-                const selectedBranch = localStorage.getItem('saga_selected_branch');
-
-                const payload = {
-                    type: this.adjustType,
-                    quantity: baseUnitQty,
-                    reason: this.adjustReason + (conversionQty > 1 ? ` (${this.adjustQty} ${this.adjustUnit?.unit_name})` : ''),
-                    branch_id: selectedBranch ? parseInt(selectedBranch) : null
-                };
-
-                const response = await fetch('/api/products/adjust-stock/' + this.selectedProduct.id, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                if (data.success) {
-                    Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1500, showConfirmButton: false });
-                    this.showAdjustModal = false;
-                    await this.fetchProducts(false);
-                } else { Swal.fire({ icon: 'error', title: 'Gagal', text: data.message }); }
-            },
-
-            async resetAllStock() {
-                const result = await Swal.fire({
-                    title: 'KOSONGKAN SEMUA STOCK?',
-                    text: 'Semua stock produk akan diset ke 0. Aksi ini tidak dapat dibatalkan!',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    confirmButtonText: 'Ya, Kosongkan!'
-                });
-                if (!result.isConfirmed) return;
-
-                const token = localStorage.getItem('saga_token');
-                const response = await fetch('/api/products/reset-all-stock', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1500, showConfirmButton: false });
-                    await this.fetchProducts(false);
-                } else { Swal.fire({ icon: 'error', title: 'Gagal', text: data.message }); }
-            },
-
-            exportStock(type) {
-                this.showExportMenu = false;
-                const token = localStorage.getItem('saga_token');
-                const url = type === 'excel' ?
-                    '/api/export/stock/excel?token=' + token :
-                    '/api/export/stock/pdf?token=' + token;
-                window.open(url, '_blank');
-            },
-
-            formatCurrency(amount) {
-                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
-            },
-
-            formatNumber(num) {
-                const n = parseFloat(num) || 0;
-                return n % 1 === 0 ? n.toString() : n.toFixed(1);
-            },
-
-            getStockColor(product) {
-                const stock = parseFloat(product.stock) || 0;
-                const minStock = parseFloat(product.min_stock) || 0;
-                if (stock <= 0) return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
-                if (stock <= minStock) return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400';
-                return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
-            }
-        }" x-init="init()">
+                }" x-init="init()">
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">Stock Management</h1>
@@ -396,7 +396,8 @@
                                 <template
                                     x-for="(unit, unitIdx) in (p.units && p.units.length > 0 ? p.units : [{unit_name: p.base_unit_name || '-', conversion_qty: 1}])"
                                     :key="unitIdx">
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                                        style="content-visibility: auto; contain-intrinsic-size: 60px;">
                                         <td class="px-3 py-2 text-center text-sm text-gray-500 dark:text-gray-400"
                                             x-show="unitIdx === 0" :rowspan="p.units?.length || 1"
                                             x-text="products.length - productIdx"></td>
@@ -671,66 +672,72 @@
         <!-- Adjust Modal -->
         <div x-show="showAdjustModal"
             class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4" x-cloak>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md" @click.away="showAdjustModal = false">
-                <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Adjust Stock</h2>
-                <div class="mb-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-900">
-                    <p class="font-medium text-gray-800 dark:text-white" x-text="selectedProduct?.name"></p>
-                    <p class="text-sm text-gray-500">
-                        Stock: <span class="font-bold"
-                            x-text="formatNumber(parseFloat(selectedProduct?.stock) / (adjustUnit?.conversion_qty || 1))"></span>
-                        <span class="text-brand-500" x-text="adjustUnit?.unit_name"></span>
-                        <span x-show="adjustUnit?.conversion_qty > 1" class="text-gray-400"
-                            x-text="'(' + selectedProduct?.stock + ' base unit)'"></span>
-                    </p>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"
+                @click.away="showAdjustModal = false">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">Adjust Stock</h2>
                 </div>
-                <form @submit.prevent="saveAdjustment()" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
-                        <div class="flex gap-4">
-                            <label
-                                class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600 w-full justify-center">
-                                <input type="radio" x-model="adjustType" value="add"
-                                    class="text-brand-500 focus:ring-brand-500">
-                                <span class="text-gray-700 dark:text-gray-300 font-medium">Add Stock</span>
-                            </label>
-                            <label
-                                class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600 w-full justify-center">
-                                <input type="radio" x-model="adjustType" value="subtract"
-                                    class="text-red-500 focus:ring-red-500">
-                                <span class="text-gray-700 dark:text-gray-300 font-medium">Reduce Stock</span>
-                            </label>
+                <div class="p-6">
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-900">
+                        <p class="font-medium text-gray-800 dark:text-white" x-text="selectedProduct?.name"></p>
+                        <p class="text-sm text-gray-500">
+                            Stock: <span class="font-bold"
+                                x-text="formatNumber(parseFloat(selectedProduct?.stock) / (adjustUnit?.conversion_qty || 1))"></span>
+                            <span class="text-brand-500" x-text="adjustUnit?.unit_name"></span>
+                            <span x-show="adjustUnit?.conversion_qty > 1" class="text-gray-400"
+                                x-text="'(' + selectedProduct?.stock + ' base unit)'"></span>
+                        </p>
+                    </div>
+                    <form @submit.prevent="saveAdjustment()" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+                            <div class="flex gap-4">
+                                <label
+                                    class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600 w-full justify-center">
+                                    <input type="radio" x-model="adjustType" value="add"
+                                        class="text-brand-500 focus:ring-brand-500">
+                                    <span class="text-gray-700 dark:text-gray-300 font-medium">Add Stock</span>
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 cursor-pointer border p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600 w-full justify-center">
+                                    <input type="radio" x-model="adjustType" value="subtract"
+                                        class="text-red-500 focus:ring-red-500">
+                                    <span class="text-gray-700 dark:text-gray-300 font-medium">Reduce Stock</span>
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
-                        <select @change="adjustUnit = selectedProduct?.units[$event.target.selectedIndex]"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-brand-500">
-                            <template x-for="(u, idx) in selectedProduct?.units" :key="u.unit_id">
-                                <option :value="idx" :selected="adjustUnit?.unit_id === u.unit_id"
-                                    x-text="u.unit_name + (u.conversion_qty > 1 ? ' (1:' + u.conversion_qty + ')' : '')">
-                                </option>
-                            </template>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
-                        <input type="number" x-model="adjustQty" min="0" step="0.01" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-brand-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
-                        <textarea x-model="adjustReason" rows="2"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-brand-500"
-                            placeholder="Optional..."></textarea>
-                    </div>
-                    <div class="flex gap-3 pt-2">
-                        <button type="button" @click="showAdjustModal = false"
-                            class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-gray-300">Cancel</button>
-                        <button type="submit"
-                            class="flex-1 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 shadow-sm font-medium">Save
-                            Adjustment</button>
-                    </div>
-                </form>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
+                            <select @change="adjustUnit = selectedProduct?.units[$event.target.selectedIndex]"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-brand-500">
+                                <template x-for="(u, idx) in selectedProduct?.units" :key="u.unit_id">
+                                    <option :value="idx" :selected="adjustUnit?.unit_id === u.unit_id"
+                                        x-text="u.unit_name + (u.conversion_qty > 1 ? ' (1:' + u.conversion_qty + ')' : '')">
+                                    </option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                            <input type="number" x-model="adjustQty" min="0" step="0.01" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
+                            <textarea x-model="adjustReason" rows="2"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-brand-500"
+                                placeholder="Optional..."></textarea>
+                        </div>
+                        <div
+                            class="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700 -mx-6 px-6 bg-gray-100 dark:bg-gray-800 -mb-6 pb-6 mt-6 rounded-b-2xl">
+                            <button type="button" @click="showAdjustModal = false"
+                                class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-gray-300">Cancel</button>
+                            <button type="submit"
+                                class="flex-1 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 shadow-sm font-medium">Save
+                                Adjustment</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

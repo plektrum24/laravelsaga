@@ -7,7 +7,7 @@
 @layer base {
   body {
     @apply font-outfit text-base font-normal text-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-gray-300;
-    zoom: 0.9;
+    zoom: 0.8;
   }
 }
 

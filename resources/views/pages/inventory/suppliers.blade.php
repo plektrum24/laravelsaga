@@ -4,102 +4,102 @@
 
 @section('content')
     <div x-data="{
-                page: 'suppliers',
-                showModal: false,
-                viewModal: false,
-                isLoading: false,
-                searchQuery: '',
+                    page: 'suppliers',
+                    showModal: false,
+                    viewModal: false,
+                    isLoading: false,
+                    searchQuery: '',
 
-                suppliers: [
-                    { id: 1, code: 'SUP-001', name: 'PT. Distribusi Maju', email: 'sales@distmaju.com', phone: '081234567890', address: 'Jl. Sudirman No. 45, Jakarta', total_orders: 15, total_debt: 2500000 },
-                    { id: 2, code: 'SUP-002', name: 'CV. Berkah Abadi', email: 'admin@berkahabadi.com', phone: '081987654321', address: 'Jl. Ahmad Yani No. 12, Bandung', total_orders: 8, total_debt: 0 },
-                    { id: 3, code: 'SUP-003', name: 'UD. Sumber Rejeki', email: 'sumber@rejeki.com', phone: '085678901234', address: 'Jl. Merdeka No. 88, Surabaya', total_orders: 22, total_debt: 12500000 }
-                ],
+                    suppliers: [
+                        { id: 1, code: 'SUP-001', name: 'PT. Distribusi Maju', email: 'sales@distmaju.com', phone: '081234567890', address: 'Jl. Sudirman No. 45, Jakarta', total_orders: 15, total_debt: 2500000 },
+                        { id: 2, code: 'SUP-002', name: 'CV. Berkah Abadi', email: 'admin@berkahabadi.com', phone: '081987654321', address: 'Jl. Ahmad Yani No. 12, Bandung', total_orders: 8, total_debt: 0 },
+                        { id: 3, code: 'SUP-003', name: 'UD. Sumber Rejeki', email: 'sumber@rejeki.com', phone: '085678901234', address: 'Jl. Merdeka No. 88, Surabaya', total_orders: 22, total_debt: 12500000 }
+                    ],
 
-                formData: {
-                    code: '',
-                    name: '',
-                    email: '',
-                    phone: '',
-                    address: ''
-                },
+                    formData: {
+                        code: '',
+                        name: '',
+                        email: '',
+                        phone: '',
+                        address: ''
+                    },
 
-                selectedSupplier: null,
+                    selectedSupplier: null,
 
-                get filteredSuppliers() {
-                    if (!this.searchQuery) return this.suppliers;
-                    const q = this.searchQuery.toLowerCase();
-                    return this.suppliers.filter(s => 
-                        s.name.toLowerCase().includes(q) || 
-                        s.code.toLowerCase().includes(q) ||
-                        s.phone.includes(q)
-                    );
-                },
+                    get filteredSuppliers() {
+                        if (!this.searchQuery) return this.suppliers;
+                        const q = this.searchQuery.toLowerCase();
+                        return this.suppliers.filter(s => 
+                            s.name.toLowerCase().includes(q) || 
+                            s.code.toLowerCase().includes(q) ||
+                            s.phone.includes(q)
+                        );
+                    },
 
-                openModal(supplier = null) {
-                    if (supplier) {
-                        this.selectedSupplier = supplier;
-                        this.formData = { ...supplier };
-                    } else {
-                        this.selectedSupplier = null;
-                        this.formData = {
-                            code: 'SUP-' + String(this.suppliers.length + 1).padStart(3, '0'),
-                            name: '',
-                            email: '',
-                            phone: '',
-                            address: ''
-                        };
-                    }
-                    this.showModal = true;
-                },
-
-                saveSupplier() {
-                    this.isLoading = true;
-                    setTimeout(() => {
-                        if (this.selectedSupplier) {
-                            // Update
-                            const index = this.suppliers.findIndex(s => s.id === this.selectedSupplier.id);
-                            if(index !== -1) {
-                                this.suppliers[index] = { ...this.formData, id: this.selectedSupplier.id, total_orders: this.selectedSupplier.total_orders, total_debt: this.selectedSupplier.total_debt };
-                            }
-                            Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Data supplier diperbarui', timer: 1500, showConfirmButton: false });
+                    openModal(supplier = null) {
+                        if (supplier) {
+                            this.selectedSupplier = supplier;
+                            this.formData = { ...supplier };
                         } else {
-                            // Create
-                            this.suppliers.push({ 
-                                ...this.formData, 
-                                id: Date.now(), 
-                                total_orders: 0, 
-                                total_debt: 0 
-                            });
-                            Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Supplier baru ditambahkan', timer: 1500, showConfirmButton: false });
+                            this.selectedSupplier = null;
+                            this.formData = {
+                                code: 'SUP-' + String(this.suppliers.length + 1).padStart(3, '0'),
+                                name: '',
+                                email: '',
+                                phone: '',
+                                address: ''
+                            };
                         }
-                        this.isLoading = false;
-                        this.showModal = false;
-                    }, 800);
-                },
+                        this.showModal = true;
+                    },
 
-                deleteSupplier(id) {
-                    Swal.fire({
-                        title: 'Hapus Supplier?',
-                        text: 'Data yang dihapus tidak dapat dikembalikan!',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColors: '#EF4444',
-                        confirmButtonText: 'Ya, Hapus!'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            this.suppliers = this.suppliers.filter(s => s.id !== id);
-                            Swal.fire('Terhapus!', 'Data supplier telah dihapus.', 'success');
-                        }
-                    });
-                },
+                    saveSupplier() {
+                        this.isLoading = true;
+                        setTimeout(() => {
+                            if (this.selectedSupplier) {
+                                // Update
+                                const index = this.suppliers.findIndex(s => s.id === this.selectedSupplier.id);
+                                if(index !== -1) {
+                                    this.suppliers[index] = { ...this.formData, id: this.selectedSupplier.id, total_orders: this.selectedSupplier.total_orders, total_debt: this.selectedSupplier.total_debt };
+                                }
+                                Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Data supplier diperbarui', timer: 1500, showConfirmButton: false });
+                            } else {
+                                // Create
+                                this.suppliers.push({ 
+                                    ...this.formData, 
+                                    id: Date.now(), 
+                                    total_orders: 0, 
+                                    total_debt: 0 
+                                });
+                                Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Supplier baru ditambahkan', timer: 1500, showConfirmButton: false });
+                            }
+                            this.isLoading = false;
+                            this.showModal = false;
+                        }, 800);
+                    },
 
-                formatCurrency(amount) {
-                    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
-                }
-            }" x-init="
-                // Initialize things if needed
-            ">
+                    deleteSupplier(id) {
+                        Swal.fire({
+                            title: 'Hapus Supplier?',
+                            text: 'Data yang dihapus tidak dapat dikembalikan!',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColors: '#EF4444',
+                            confirmButtonText: 'Ya, Hapus!'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                this.suppliers = this.suppliers.filter(s => s.id !== id);
+                                Swal.fire('Terhapus!', 'Data supplier telah dihapus.', 'success');
+                            }
+                        });
+                    },
+
+                    formatCurrency(amount) {
+                        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
+                    }
+                }" x-init="
+                    // Initialize things if needed
+                ">
 
         <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -239,7 +239,8 @@
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 @click.outside="showModal = false">
 
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div
+                    class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-100 dark:bg-gray-800">
                     <h3 class="text-xl font-bold text-gray-800 dark:text-white"
                         x-text="selectedSupplier ? 'Edit Supplier' : 'Tambah Supplier'"></h3>
                     <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -284,7 +285,7 @@
                 </div>
 
                 <div
-                    class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl">
+                    class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 bg-gray-100 dark:bg-gray-800 rounded-b-2xl">
                     <button @click="showModal = false"
                         class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-xl font-medium transition-colors">Batal</button>
                     <button @click="saveSupplier()" :disabled="isLoading || !formData.name"

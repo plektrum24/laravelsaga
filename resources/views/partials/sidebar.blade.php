@@ -1,8 +1,9 @@
 <!-- ===== Sidebar Start ===== -->
 <aside
   :class="($store.sidebar.open || hovered) ? 'translate-x-0 lg:w-[280px]' : '-translate-x-full lg:translate-x-0 lg:w-[80px]'"
-  class="sidebar fixed top-0 left-0 z-[99999] flex h-screen w-[280px] lg:w-[80px] flex-col overflow-y-hidden border-r border-gray-200 bg-white duration-300 ease-in-out lg:static dark:border-gray-800 dark:bg-gray-900"
-  @click.outside="$store.sidebar.open = false" @mouseenter="hovered = true" @mouseleave="hovered = false" x-data="{
+  class="sidebar fixed top-0 left-0 z-[99999] flex min-h-full w-[280px] lg:w-[80px] flex-col overflow-y-auto border-r border-gray-200 bg-white duration-300 ease-in-out lg:static dark:border-gray-800 dark:bg-gray-900"
+  x-cloak @click.outside="$store.sidebar.open = false" @mouseenter="hovered = true" @mouseleave="hovered = false"
+  x-data="{
     currentUser: JSON.parse(localStorage.getItem('saga_user')) || { name: 'Demo User', role: 'tenant_owner', email: 'demo@sagatoko.com' },
     currentTenant: JSON.parse(localStorage.getItem('saga_tenant')) || {},
     openMenu: '',
@@ -140,55 +141,57 @@
       <!-- ===== TENANT MENU (DYNAMIC) ===== -->
       <template x-if="!isSuperAdmin()">
         <div class="space-y-6">
-            <template x-for="section in menus" :key="section.title">
-                <div>
-                    <div x-show="$store.sidebar.open || hovered"
-                        class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3"
-                        x-text="section.title">
-                    </div>
-                    
-                    <ul class="space-y-1">
-                        <template x-for="item in section.items" :key="item.label">
-                            <li>
-                                <!-- Single Link -->
-                                <template x-if="!item.submenu">
-                                    <a :href="item.route ? `/${item.route.replace('index', '').replace('.', '/')}` : '#'" 
-                                       class="sidebar-menu-item"
-                                       :class="window.location.href.includes(item.route?.replace('.index', '')) ? 'sidebar-menu-active' : ''">
-                                        <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor" x-html="item.icon"></svg>
-                                        <span x-show="$store.sidebar.open || hovered" class="sidebar-menu-text" x-text="item.label"></span>
-                                    </a>
-                                </template>
+          <template x-for="section in menus" :key="section.title">
+            <div>
+              <div x-show="$store.sidebar.open || hovered"
+                class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3" x-text="section.title">
+              </div>
 
-                                <!-- Submenu dropdown -->
-                                <template x-if="item.submenu">
-                                    <div>
-                                        <button @click="toggleMenu(item.id)" class="sidebar-menu-item w-full"
-                                            :class="openMenu === item.id ? 'sidebar-menu-active' : ''">
-                                            <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor" x-html="item.icon"></svg>
-                                            <span x-show="$store.sidebar.open || hovered" class="sidebar-menu-text flex-1 text-left" x-text="item.label"></span>
-                                            <svg x-show="$store.sidebar.open || hovered" class="w-4 h-4 transition-transform"
-                                                :class="openMenu === item.id ? 'rotate-180' : ''" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                                            </svg>
-                                        </button>
-                                        <ul x-show="openMenu === item.id && ($store.sidebar.open || hovered)" class="sidebar-submenu">
-                                            <template x-for="sub in item.submenu" :key="sub.label">
-                                                <li>
-                                                    <a :href="`/${sub.route.replace('inventory.', 'inventory/').replace(/\./g, '/')}`" 
-                                                       class="sidebar-submenu-item"
-                                                       x-text="sub.label">
-                                                    </a>
-                                                </li>
-                                            </template>
-                                        </ul>
-                                    </div>
-                                </template>
+              <ul class="space-y-1">
+                <template x-for="item in section.items" :key="item.label">
+                  <li>
+                    <!-- Single Link -->
+                    <template x-if="!item.submenu">
+                      <a :href="item.route ? `/${item.route.replace('index', '').replace('.', '/')}` : '#'"
+                        class="sidebar-menu-item"
+                        :class="window.location.href.includes(item.route?.replace('.index', '')) ? 'sidebar-menu-active' : ''">
+                        <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor" x-html="item.icon"></svg>
+                        <span x-show="$store.sidebar.open || hovered" class="sidebar-menu-text"
+                          x-text="item.label"></span>
+                      </a>
+                    </template>
+
+                    <!-- Submenu dropdown -->
+                    <template x-if="item.submenu">
+                      <div>
+                        <button @click="toggleMenu(item.id)" class="sidebar-menu-item w-full"
+                          :class="openMenu === item.id ? 'sidebar-menu-active' : ''">
+                          <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor"
+                            x-html="item.icon"></svg>
+                          <span x-show="$store.sidebar.open || hovered" class="sidebar-menu-text flex-1 text-left"
+                            x-text="item.label"></span>
+                          <svg x-show="$store.sidebar.open || hovered" class="w-4 h-4 transition-transform"
+                            :class="openMenu === item.id ? 'rotate-180' : ''" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                          </svg>
+                        </button>
+                        <ul x-show="openMenu === item.id && ($store.sidebar.open || hovered)" class="sidebar-submenu">
+                          <template x-for="sub in item.submenu" :key="sub.label">
+                            <li>
+                              <a :href="`/${sub.route.replace('inventory.', 'inventory/').replace(/\./g, '/')}`"
+                                class="sidebar-submenu-item" x-text="sub.label">
+                              </a>
                             </li>
-                        </template>
-                    </ul>
-                </div>
-            </template>
+                          </template>
+                        </ul>
+                      </div>
+                    </template>
+                  </li>
+                </template>
+              </ul>
+            </div>
+          </template>
         </div>
       </template>
     </nav>

@@ -4,352 +4,352 @@
 
 @section('content')
     <div x-data="{
-                page: 'transferItem',
-                activeTab: 'outgoing',
-                isLoading: false,
-                showModal: false,
-                viewDetailModal: false,
-                selectedTransfer: null,
-                selectedTransferItems: [],
+                    page: 'transferItem',
+                    activeTab: 'outgoing',
+                    isLoading: false,
+                    showModal: false,
+                    viewDetailModal: false,
+                    selectedTransfer: null,
+                    selectedTransferItems: [],
 
-                // User info for branch locking
-                userRole: JSON.parse(localStorage.getItem('saga_user'))?.role || '',
-                userBranchId: JSON.parse(localStorage.getItem('saga_user'))?.branch_id || null,
-                isFromLocked: false,
+                    // User info for branch locking
+                    userRole: JSON.parse(localStorage.getItem('saga_user'))?.role || '',
+                    userBranchId: JSON.parse(localStorage.getItem('saga_user'))?.branch_id || null,
+                    isFromLocked: false,
 
-                // Transfer form
-                transferForm: {
-                    fromLocation: '',
-                    toLocation: '',
-                    notes: '',
-                    items: []
-                },
-
-                locations: [],
-                transfers: [],
-                products: [],
-                searchProduct: '',
-                showDropdown: false,
-
-                async init() {
-                    const token = localStorage.getItem('saga_token');
-                    // if (!token) return window.location.href = '/signin'; // Disabled for Dev
-
-                    await Promise.all([
-                        this.fetchLocations(token),
-                        this.fetchTransfers(token)
-                    ]);
-
-                    // Poll for updates every 30s
-                    setInterval(() => this.fetchTransfers(token), 30000);
-
-                    // Auto-set fromLocation based on role
-                    if (this.userRole === 'tenant_owner') {
-                        const savedBranch = localStorage.getItem('saga_selected_branch');
-                        if (savedBranch) {
-                            this.transferForm.fromLocation = parseInt(savedBranch);
-                            await this.fetchProducts(token, savedBranch);
-                        }
-                        this.isFromLocked = false;
-                    } else if (this.userBranchId) {
-                        this.transferForm.fromLocation = this.userBranchId;
-                        this.isFromLocked = true;
-                        await this.fetchProducts(token, this.userBranchId);
-                    }
-
-                    this.$watch('transferForm.fromLocation', async (value) => {
-                        if (value) {
-                            await this.fetchProducts(token, value);
-                        }
-                    });
-                },
-
-                async fetchLocations(token) {
-                    try {
-                        const res = await fetch('/api/branches', { headers: { 'Authorization': 'Bearer ' + token } });
-                        const data = await res.json();
-                        if (data.success) {
-                            this.locations = data.data.map(b => ({
-                                id: b.id,
-                                name: b.name,
-                                type: b.is_main ? 'PUSAT' : 'CABANG',
-                                is_active: b.is_active
-                            }));
-                        }
-                    } catch (e) {
-                        console.error('Error fetching locations:', e);
-                    }
-                },
-
-                async fetchProducts(token, branchId = null, searchQuery = '') {
-                    try {
-                        let url = '/api/products?limit=100';
-                        if (branchId) url += '&branch_id=' + branchId;
-                        if (searchQuery) url += '&search=' + encodeURIComponent(searchQuery);
-
-                        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-                        const data = await res.json();
-                        if (data.success) this.products = data.data.products || [];
-                    } catch (e) {
-                        console.error(e);
-                    }
-                },
-
-                async searchProducts() {
-                    const token = localStorage.getItem('saga_token');
-                    if (this.transferForm.fromLocation) {
-                        await this.fetchProducts(token, this.transferForm.fromLocation, this.searchProduct);
-                    }
-                },
-
-                async fetchTransfers(token) {
-                    try {
-                        const res = await fetch('/api/transfers', { headers: { 'Authorization': 'Bearer ' + token } });
-                        const data = await res.json();
-                        if (data.success) {
-                            this.transfers = data.data.map(t => ({
-                                id: t.id,
-                                code: t.transfer_number,
-                                from: t.from_branch_name,
-                                to: t.to_branch_name,
-                                items: t.item_count || 0,
-                                total_qty: t.total_qty || 0,
-                                status: t.status,
-                                date: t.created_at,
-                                raw: t
-                            }));
-                        }
-                    } catch (e) {
-                        console.error('Error fetching transfers:', e);
-                    }
-                },
-
-                get filteredProducts() {
-                    return this.products.slice(0, 10);
-                },
-
-                get filteredTransfers() {
-                    if (this.activeTab === 'outgoing') {
-                        return this.transfers.filter(t => t.status === 'shipped' || t.status === 'pending');
-                    } else {
-                        return this.transfers.filter(t => t.status === 'received' || t.status === 'shipped');
-                    }
-                },
-
-                openNewTransfer() {
-                    const savedFrom = this.transferForm.fromLocation || localStorage.getItem('saga_selected_branch') || this
-                        .userBranchId;
-                    this.transferForm = {
-                        fromLocation: savedFrom,
+                    // Transfer form
+                    transferForm: {
+                        fromLocation: '',
                         toLocation: '',
                         notes: '',
                         items: []
-                    };
-                    this.searchProduct = '';
-                    this.showModal = true;
+                    },
 
-                    if (savedFrom) {
+                    locations: [],
+                    transfers: [],
+                    products: [],
+                    searchProduct: '',
+                    showDropdown: false,
+
+                    async init() {
                         const token = localStorage.getItem('saga_token');
-                        this.fetchProducts(token, savedFrom);
-                    }
-                },
+                        // if (!token) return window.location.href = '/signin'; // Disabled for Dev
 
-                addItemToTransfer(product) {
-                    const existing = this.transferForm.items.find(i => i.product_id === product.id);
-                    if (existing) {
-                        existing.quantity++;
-                    } else {
-                        const units = product.units || [{
-                            unit_id: null,
-                            unit_name: 'Pcs',
-                            conversion_qty: 1,
-                            is_base_unit: true
-                        }];
-                        const baseUnit = units.find(u => u.is_base_unit) || units[0];
-                        this.transferForm.items.push({
-                            product_id: product.id,
-                            name: product.name,
-                            sku: product.sku,
-                            stock: product.stock,
-                            units: units,
-                            selectedUnit: baseUnit,
-                            quantity: 1
+                        await Promise.all([
+                            this.fetchLocations(token),
+                            this.fetchTransfers(token)
+                        ]);
+
+                        // Poll for updates every 30s
+                        setInterval(() => this.fetchTransfers(token), 30000);
+
+                        // Auto-set fromLocation based on role
+                        if (this.userRole === 'tenant_owner') {
+                            const savedBranch = localStorage.getItem('saga_selected_branch');
+                            if (savedBranch) {
+                                this.transferForm.fromLocation = parseInt(savedBranch);
+                                await this.fetchProducts(token, savedBranch);
+                            }
+                            this.isFromLocked = false;
+                        } else if (this.userBranchId) {
+                            this.transferForm.fromLocation = this.userBranchId;
+                            this.isFromLocked = true;
+                            await this.fetchProducts(token, this.userBranchId);
+                        }
+
+                        this.$watch('transferForm.fromLocation', async (value) => {
+                            if (value) {
+                                await this.fetchProducts(token, value);
+                            }
                         });
-                    }
-                    this.searchProduct = '';
-                },
+                    },
 
-                removeItemFromTransfer(index) {
-                    this.transferForm.items.splice(index, 1);
-                },
+                    async fetchLocations(token) {
+                        try {
+                            const res = await fetch('/api/branches', { headers: { 'Authorization': 'Bearer ' + token } });
+                            const data = await res.json();
+                            if (data.success) {
+                                this.locations = data.data.map(b => ({
+                                    id: b.id,
+                                    name: b.name,
+                                    type: b.is_main ? 'PUSAT' : 'CABANG',
+                                    is_active: b.is_active
+                                }));
+                            }
+                        } catch (e) {
+                            console.error('Error fetching locations:', e);
+                        }
+                    },
 
-                async createTransfer() {
-                    if (!this.transferForm.fromLocation || !this.transferForm.toLocation) {
-                        Swal.fire('Error', 'Pilih lokasi asal dan tujuan', 'error');
-                        return;
-                    }
-                    if (this.transferForm.items.length === 0) {
-                        Swal.fire('Error', 'Tambahkan minimal 1 item', 'error');
-                        return;
-                    }
-                    this.isLoading = true;
+                    async fetchProducts(token, branchId = null, searchQuery = '') {
+                        try {
+                            let url = '/api/products?limit=100';
+                            if (branchId) url += '&branch_id=' + branchId;
+                            if (searchQuery) url += '&search=' + encodeURIComponent(searchQuery);
 
-                    const payload = {
-                        from_branch_id: this.transferForm.fromLocation,
-                        to_branch_id: this.transferForm.toLocation,
-                        notes: this.transferForm.notes,
-                        items: this.transferForm.items.map(i => {
-                            const conversionQty = parseFloat(i.selectedUnit?.conversion_qty) || 1;
-                            return {
-                                product_id: i.product_id,
-                                quantity: i.quantity * conversionQty,
-                                unit_id: i.selectedUnit?.unit_id || null,
-                                notes: i.selectedUnit?.unit_name ?
-                                    `(${i.quantity} ${i.selectedUnit.unit_name})` : ''
-                            };
-                        })
-                    };
+                            const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                            const data = await res.json();
+                            if (data.success) this.products = data.data.products || [];
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    },
 
-                    try {
+                    async searchProducts() {
                         const token = localStorage.getItem('saga_token');
-                        const res = await fetch('/api/transfers', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json'
+                        if (this.transferForm.fromLocation) {
+                            await this.fetchProducts(token, this.transferForm.fromLocation, this.searchProduct);
+                        }
+                    },
+
+                    async fetchTransfers(token) {
+                        try {
+                            const res = await fetch('/api/transfers', { headers: { 'Authorization': 'Bearer ' + token } });
+                            const data = await res.json();
+                            if (data.success) {
+                                this.transfers = data.data.map(t => ({
+                                    id: t.id,
+                                    code: t.transfer_number,
+                                    from: t.from_branch_name,
+                                    to: t.to_branch_name,
+                                    items: t.item_count || 0,
+                                    total_qty: t.total_qty || 0,
+                                    status: t.status,
+                                    date: t.created_at,
+                                    raw: t
+                                }));
+                            }
+                        } catch (e) {
+                            console.error('Error fetching transfers:', e);
+                        }
+                    },
+
+                    get filteredProducts() {
+                        return this.products.slice(0, 10);
+                    },
+
+                    get filteredTransfers() {
+                        if (this.activeTab === 'outgoing') {
+                            return this.transfers.filter(t => t.status === 'shipped' || t.status === 'pending');
+                        } else {
+                            return this.transfers.filter(t => t.status === 'received' || t.status === 'shipped');
+                        }
+                    },
+
+                    openNewTransfer() {
+                        const savedFrom = this.transferForm.fromLocation || localStorage.getItem('saga_selected_branch') || this
+                            .userBranchId;
+                        this.transferForm = {
+                            fromLocation: savedFrom,
+                            toLocation: '',
+                            notes: '',
+                            items: []
+                        };
+                        this.searchProduct = '';
+                        this.showModal = true;
+
+                        if (savedFrom) {
+                            const token = localStorage.getItem('saga_token');
+                            this.fetchProducts(token, savedFrom);
+                        }
+                    },
+
+                    addItemToTransfer(product) {
+                        const existing = this.transferForm.items.find(i => i.product_id === product.id);
+                        if (existing) {
+                            existing.quantity++;
+                        } else {
+                            const units = product.units || [{
+                                unit_id: null,
+                                unit_name: 'Pcs',
+                                conversion_qty: 1,
+                                is_base_unit: true
+                            }];
+                            const baseUnit = units.find(u => u.is_base_unit) || units[0];
+                            this.transferForm.items.push({
+                                product_id: product.id,
+                                name: product.name,
+                                sku: product.sku,
+                                stock: product.stock,
+                                units: units,
+                                selectedUnit: baseUnit,
+                                quantity: 1
+                            });
+                        }
+                        this.searchProduct = '';
+                    },
+
+                    removeItemFromTransfer(index) {
+                        this.transferForm.items.splice(index, 1);
+                    },
+
+                    async createTransfer() {
+                        if (!this.transferForm.fromLocation || !this.transferForm.toLocation) {
+                            Swal.fire('Error', 'Pilih lokasi asal dan tujuan', 'error');
+                            return;
+                        }
+                        if (this.transferForm.items.length === 0) {
+                            Swal.fire('Error', 'Tambahkan minimal 1 item', 'error');
+                            return;
+                        }
+                        this.isLoading = true;
+
+                        const payload = {
+                            from_branch_id: this.transferForm.fromLocation,
+                            to_branch_id: this.transferForm.toLocation,
+                            notes: this.transferForm.notes,
+                            items: this.transferForm.items.map(i => {
+                                const conversionQty = parseFloat(i.selectedUnit?.conversion_qty) || 1;
+                                return {
+                                    product_id: i.product_id,
+                                    quantity: i.quantity * conversionQty,
+                                    unit_id: i.selectedUnit?.unit_id || null,
+                                    notes: i.selectedUnit?.unit_name ?
+                                        `(${i.quantity} ${i.selectedUnit.unit_name})` : ''
+                                };
+                            })
+                        };
+
+                        try {
+                            const token = localStorage.getItem('saga_token');
+                            const res = await fetch('/api/transfers', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': 'Bearer ' + token,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(payload)
+                            });
+                            const data = await res.json();
+
+                            if (data.success) {
+                                this.showModal = false;
+                                await this.fetchTransfers(token);
+                                Swal.fire('Berhasil', 'Transfer berhasil dibuat', 'success');
+                                this.transferForm.items = [];
+                                this.transferForm.notes = '';
+                            } else {
+                                Swal.fire('Gagal', data.message || 'Gagal membuat transfer', 'error');
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+                        } finally {
+                            this.isLoading = false;
+                        }
+                    },
+
+                    async shipTransfer(transfer) {
+                        const result = await Swal.fire({
+                            title: 'Konfirmasi Pengiriman',
+                            text: 'Tandai sebagai dikirim (Shipped)? Stok akan dipotong dari cabang asal.',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Ya, Kirim!'
+                        });
+
+                        if (!result.isConfirmed) return;
+
+                        const token = localStorage.getItem('saga_token');
+                        try {
+                            const res = await fetch(`/api/transfers/${transfer.id}/approve`, {
+                                method: 'PATCH',
+                                headers: { 'Authorization': 'Bearer ' + token }
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                await this.fetchTransfers(token);
+                                Swal.fire('Berhasil!', 'Status transfer diperbarui menjadi Shipped.', 'success');
+                            } else {
+                                Swal.fire('Gagal', data.message, 'error');
+                            }
+                        } catch (e) {
+                            Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+                        }
+                    },
+
+                    async receiveTransfer(transfer) {
+                        const result = await Swal.fire({
+                            title: 'Konfirmasi Penerimaan',
+                            text: 'Barang sudah diterima? Stok akan bertambah di cabang tujuan.',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Ya, Terima!'
+                        });
+
+                        if (!result.isConfirmed) return;
+
+                        const token = localStorage.getItem('saga_token');
+                        try {
+                            const res = await fetch(`/api/transfers/${transfer.id}/receive`, {
+                                method: 'PATCH',
+                                headers: { 'Authorization': 'Bearer ' + token }
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                await this.fetchTransfers(token);
+                                Swal.fire('Berhasil!', 'Barang telah diterima.', 'success');
+                            } else {
+                                Swal.fire('Gagal', data.message, 'error');
+                            }
+                        } catch (e) {
+                            Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+                        }
+                    },
+
+                    getStatusBadge(status) {
+                        const badges = {
+                            'pending': {
+                                text: 'Pending',
+                                class: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
                             },
-                            body: JSON.stringify(payload)
+                            'shipped': {
+                                text: 'Shipped / Delivery',
+                                class: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                            },
+                            'received': {
+                                text: 'Received',
+                                class: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                            }
+                        };
+                        return badges[status] || badges['pending'];
+                    },
+
+                    formatDate(dateStr) {
+                        return new Date(dateStr).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
                         });
-                        const data = await res.json();
+                    },
 
-                        if (data.success) {
-                            this.showModal = false;
-                            await this.fetchTransfers(token);
-                            Swal.fire('Berhasil', 'Transfer berhasil dibuat', 'success');
-                            this.transferForm.items = [];
-                            this.transferForm.notes = '';
-                        } else {
-                            Swal.fire('Gagal', data.message || 'Gagal membuat transfer', 'error');
+                    async viewTransfer(transfer) {
+                        this.isLoading = true;
+                        try {
+                            const token = localStorage.getItem('saga_token');
+                            const res = await fetch(`/api/transfers/${transfer.id}`, {
+                                headers: { 'Authorization': 'Bearer ' + token }
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                this.selectedTransfer = data.data;
+                                this.selectedTransferItems = data.data.items || [];
+                                this.viewDetailModal = true;
+                            } else {
+                                Swal.fire('Error', data.message || 'Gagal mengambil detail', 'error');
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            Swal.fire('Error', 'Gagal mengambil detail transfer', 'error');
+                        } finally {
+                            this.isLoading = false;
                         }
-                    } catch (e) {
-                        console.error(e);
-                        Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
-                    } finally {
-                        this.isLoading = false;
                     }
-                },
-
-                async shipTransfer(transfer) {
-                    const result = await Swal.fire({
-                        title: 'Konfirmasi Pengiriman',
-                        text: 'Tandai sebagai dikirim (Shipped)? Stok akan dipotong dari cabang asal.',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Ya, Kirim!'
-                    });
-
-                    if (!result.isConfirmed) return;
-
-                    const token = localStorage.getItem('saga_token');
-                    try {
-                        const res = await fetch(`/api/transfers/${transfer.id}/approve`, {
-                            method: 'PATCH',
-                            headers: { 'Authorization': 'Bearer ' + token }
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            await this.fetchTransfers(token);
-                            Swal.fire('Berhasil!', 'Status transfer diperbarui menjadi Shipped.', 'success');
-                        } else {
-                            Swal.fire('Gagal', data.message, 'error');
-                        }
-                    } catch (e) {
-                        Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
-                    }
-                },
-
-                async receiveTransfer(transfer) {
-                    const result = await Swal.fire({
-                        title: 'Konfirmasi Penerimaan',
-                        text: 'Barang sudah diterima? Stok akan bertambah di cabang tujuan.',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Ya, Terima!'
-                    });
-
-                    if (!result.isConfirmed) return;
-
-                    const token = localStorage.getItem('saga_token');
-                    try {
-                        const res = await fetch(`/api/transfers/${transfer.id}/receive`, {
-                            method: 'PATCH',
-                            headers: { 'Authorization': 'Bearer ' + token }
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            await this.fetchTransfers(token);
-                            Swal.fire('Berhasil!', 'Barang telah diterima.', 'success');
-                        } else {
-                            Swal.fire('Gagal', data.message, 'error');
-                        }
-                    } catch (e) {
-                        Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
-                    }
-                },
-
-                getStatusBadge(status) {
-                    const badges = {
-                        'pending': {
-                            text: 'Pending',
-                            class: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                        },
-                        'shipped': {
-                            text: 'Shipped / Delivery',
-                            class: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                        },
-                        'received': {
-                            text: 'Received',
-                            class: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                        }
-                    };
-                    return badges[status] || badges['pending'];
-                },
-
-                formatDate(dateStr) {
-                    return new Date(dateStr).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                    });
-                },
-
-                async viewTransfer(transfer) {
-                    this.isLoading = true;
-                    try {
-                        const token = localStorage.getItem('saga_token');
-                        const res = await fetch(`/api/transfers/${transfer.id}`, {
-                            headers: { 'Authorization': 'Bearer ' + token }
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            this.selectedTransfer = data.data;
-                            this.selectedTransferItems = data.data.items || [];
-                            this.viewDetailModal = true;
-                        } else {
-                            Swal.fire('Error', data.message || 'Gagal mengambil detail', 'error');
-                        }
-                    } catch (e) {
-                        console.error(e);
-                        Swal.fire('Error', 'Gagal mengambil detail transfer', 'error');
-                    } finally {
-                        this.isLoading = false;
-                    }
-                }
-            }" x-init="init()">
+                }" x-init="init()">
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Transfer Item</h1>
@@ -685,7 +685,8 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
+                <div
+                    class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 bg-gray-100 dark:bg-gray-800">
                     <button @click="showModal = false"
                         class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white">Cancel</button>
                     <button @click="createTransfer()" :disabled="isLoading"

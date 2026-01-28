@@ -4,126 +4,126 @@
 
 @section('content')
     <div x-data="{
-        page: 'users',
-        showModal: false,
-        isLoading: false,
-        searchQuery: '',
+            page: 'users',
+            showModal: false,
+            isLoading: false,
+            searchQuery: '',
 
-        users: [
-            { id: 1, name: 'Reza Akbar', email: 'owner@sagaretail.com', role: 'owner', branch: 'Pusat (Jakarta)', status: 'active', last_login: '2024-01-24 10:00' },
-            { id: 2, name: 'Dina Marlina', email: 'admin.jkt@sagaretail.com', role: 'manager', branch: 'Pusat (Jakarta)', status: 'active', last_login: '2024-01-24 08:30' },
-            { id: 3, name: 'Budi Santoso', email: 'cashier.bdg@sagaretail.com', role: 'cashier', branch: 'Cabang Bandung', status: 'active', last_login: '2024-01-23 21:00' }
-        ],
+            users: [
+                { id: 1, name: 'Reza Akbar', email: 'owner@sagaretail.com', role: 'owner', branch: 'Pusat (Jakarta)', status: 'active', last_login: '2024-01-24 10:00' },
+                { id: 2, name: 'Dina Marlina', email: 'admin.jkt@sagaretail.com', role: 'manager', branch: 'Pusat (Jakarta)', status: 'active', last_login: '2024-01-24 08:30' },
+                { id: 3, name: 'Budi Santoso', email: 'cashier.bdg@sagaretail.com', role: 'cashier', branch: 'Cabang Bandung', status: 'active', last_login: '2024-01-23 21:00' }
+            ],
 
-        branches: [
-            { id: 1, name: 'Pusat (Jakarta)' },
-            { id: 2, name: 'Cabang Bandung' },
-            { id: 3, name: 'Cabang Surabaya' }
-        ],
+            branches: [
+                { id: 1, name: 'Pusat (Jakarta)' },
+                { id: 2, name: 'Cabang Bandung' },
+                { id: 3, name: 'Cabang Surabaya' }
+            ],
 
-        roles: [
-            { id: 'owner', name: 'Owner (Pemilik)' },
-            { id: 'manager', name: 'Manager (Kepala Toko)' },
-            { id: 'cashier', name: 'Cashier (Kasir)' },
-            { id: 'warehouse', name: 'Warehouse (Gudang)' }
-        ],
+            roles: [
+                { id: 'owner', name: 'Owner (Pemilik)' },
+                { id: 'manager', name: 'Manager (Kepala Toko)' },
+                { id: 'cashier', name: 'Cashier (Kasir)' },
+                { id: 'warehouse', name: 'Warehouse (Gudang)' }
+            ],
 
-        formData: {
-            id: null,
-            name: '',
-            email: '',
-            password: '',
-            role: 'cashier',
-            branch_id: 1,
-            status: 'active'
-        },
+            formData: {
+                id: null,
+                name: '',
+                email: '',
+                password: '',
+                role: 'cashier',
+                branch_id: 1,
+                status: 'active'
+            },
 
-        get filteredUsers() {
-            if (!this.searchQuery) return this.users;
-            const q = this.searchQuery.toLowerCase();
-            return this.users.filter(u => 
-                u.name.toLowerCase().includes(q) || 
-                u.email.toLowerCase().includes(q)
-            );
-        },
+            get filteredUsers() {
+                if (!this.searchQuery) return this.users;
+                const q = this.searchQuery.toLowerCase();
+                return this.users.filter(u => 
+                    u.name.toLowerCase().includes(q) || 
+                    u.email.toLowerCase().includes(q)
+                );
+            },
 
-        openModal(user = null) {
-            if (user) {
-                this.formData = { ...user, password: '' }; // Don't show password
-            } else {
-                this.formData = {
-                    id: null,
-                    name: '',
-                    email: '',
-                    password: '',
-                    role: 'cashier',
-                    branch_id: 1,
-                    status: 'active'
-                };
-            }
-            this.showModal = true;
-        },
+            openModal(user = null) {
+                if (user) {
+                    this.formData = { ...user, password: '' }; // Don't show password
+                } else {
+                    this.formData = {
+                        id: null,
+                        name: '',
+                        email: '',
+                        password: '',
+                        role: 'cashier',
+                        branch_id: 1,
+                        status: 'active'
+                    };
+                }
+                this.showModal = true;
+            },
 
-        saveUser() {
-            this.isLoading = true;
-            setTimeout(() => {
-                if (this.formData.id) {
-                    // Update
-                    const index = this.users.findIndex(u => u.id === this.formData.id);
-                    if(index !== -1) {
-                        this.users[index] = { 
-                            ...this.users[index], 
+            saveUser() {
+                this.isLoading = true;
+                setTimeout(() => {
+                    if (this.formData.id) {
+                        // Update
+                        const index = this.users.findIndex(u => u.id === this.formData.id);
+                        if(index !== -1) {
+                            this.users[index] = { 
+                                ...this.users[index], 
+                                name: this.formData.name,
+                                email: this.formData.email,
+                                role: this.formData.role,
+                                branch: this.branches.find(b => b.id == this.formData.branch_id)?.name || '-',
+                                status: this.formData.status
+                            };
+                        }
+                        Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Data user diperbarui', timer: 1500, showConfirmButton: false });
+                    } else {
+                        // Create
+                        this.users.push({ 
+                            id: Date.now(),
                             name: this.formData.name,
                             email: this.formData.email,
                             role: this.formData.role,
                             branch: this.branches.find(b => b.id == this.formData.branch_id)?.name || '-',
-                            status: this.formData.status
-                        };
+                            status: 'active',
+                            last_login: '-'
+                        });
+                        Swal.fire({ icon: 'success', title: 'Berhasil', text: 'User baru ditambahkan', timer: 1500, showConfirmButton: false });
                     }
-                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Data user diperbarui', timer: 1500, showConfirmButton: false });
-                } else {
-                    // Create
-                    this.users.push({ 
-                        id: Date.now(),
-                        name: this.formData.name,
-                        email: this.formData.email,
-                        role: this.formData.role,
-                        branch: this.branches.find(b => b.id == this.formData.branch_id)?.name || '-',
-                        status: 'active',
-                        last_login: '-'
-                    });
-                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'User baru ditambahkan', timer: 1500, showConfirmButton: false });
-                }
-                this.isLoading = false;
-                this.showModal = false;
-            }, 800);
-        },
+                    this.isLoading = false;
+                    this.showModal = false;
+                }, 800);
+            },
 
-        deleteUser(id) {
-            Swal.fire({
-                title: 'Hapus User?',
-                text: 'Akses user akan dicabut permanen!',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColors: '#EF4444',
-                confirmButtonText: 'Ya, Hapus!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    this.users = this.users.filter(u => u.id !== id);
-                    Swal.fire('Terhapus!', 'User telah dihapus.', 'success');
-                }
-            });
-        },
+            deleteUser(id) {
+                Swal.fire({
+                    title: 'Hapus User?',
+                    text: 'Akses user akan dicabut permanen!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColors: '#EF4444',
+                    confirmButtonText: 'Ya, Hapus!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.users = this.users.filter(u => u.id !== id);
+                        Swal.fire('Terhapus!', 'User telah dihapus.', 'success');
+                    }
+                });
+            },
 
-        getRoleBadge(role) {
-            switch(role) {
-                case 'owner': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
-                case 'manager': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-                case 'cashier': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-                default: return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+            getRoleBadge(role) {
+                switch(role) {
+                    case 'owner': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+                    case 'manager': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                    case 'cashier': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+                    default: return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                }
             }
-        }
-    }" x-init="">
+        }" x-init="">
 
         <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -249,7 +249,8 @@
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 @click.outside="showModal = false">
 
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div
+                    class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-100 dark:bg-gray-800">
                     <h3 class="text-xl font-bold text-gray-800 dark:text-white"
                         x-text="formData.id ? 'Edit User' : 'Tambah User Baru'"></h3>
                     <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -310,7 +311,7 @@
                 </div>
 
                 <div
-                    class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl">
+                    class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 bg-gray-100 dark:bg-gray-800 rounded-b-2xl">
                     <button @click="showModal = false"
                         class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-xl font-medium transition-colors">Batal</button>
                     <button @click="saveUser()" :disabled="isLoading || !formData.name || !formData.email"
