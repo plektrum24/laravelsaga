@@ -38,40 +38,62 @@ class ProductController extends Controller
         }
 
         // Sort
+        // Clear any default sorts (scope, etc) to ensure our sort is primary
+        $query->reorder();
+
         $sort = $request->sort ?? 'name_asc';
+
         switch ($sort) {
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
             case 'name_desc':
                 $query->orderBy('name', 'desc');
                 break;
             case 'price_asc':
                 $query->orderBy('sell_price', 'asc');
-                break; // Base sell price
+                break;
             case 'price_desc':
                 $query->orderBy('sell_price', 'desc');
                 break;
             case 'stock_asc':
-                $query->orderBy('stock', 'asc');
+                $query->orderByRaw('CAST(stock AS DECIMAL(15,2)) ASC');
                 break;
             case 'stock_desc':
-                $query->orderBy('stock', 'desc');
+                $query->orderByRaw('CAST(stock AS DECIMAL(15,2)) DESC');
                 break;
             default:
                 $query->orderBy('name', 'asc');
         }
+
+        // DEBUG SQL
+        // dd($query->toSql());
+
+        // DEBUG SQL
+        // dd($query->toSql());
 
         $limit = $request->limit ?? 40;
         $products = $query->paginate($limit);
 
         $products->getCollection()->transform(function ($product) {
             $product->units = $product->units->map(function ($productUnit) {
-                // Flatten the structure: product_unit -> unit -> name
-                $productUnit->unit_name = $productUnit->unit->name ?? '-';
+                // Ensure prices are numbers
+                $productUnit->conversion_qty = (float) $productUnit->conversion_qty;
                 return $productUnit;
             });
-            // Ensure base unit name is also available if needed
-            $product->category_name = $product->category->name ?? '-';
+            // Attach master/base unit info for convenience
+            $baseUnit = $product->units->where('is_base_unit', true)->first();
+            if ($baseUnit) {
+                $product->base_unit_name = $baseUnit->unit->name ?? '-';
+                $product->buy_price = $baseUnit->buy_price;
+                $product->sell_price = $baseUnit->sell_price;
+            }
             return $product;
         });
+
+        // CRITICAL FIX: Reset keys to 0,1,2... to ensure JSON array, NOT object
+        // This prevents frontend "Object Key Sorting" issues
+        $products->setCollection($products->getCollection()->values());
 
         return response()->json([
             'success' => true,
@@ -161,6 +183,7 @@ class ProductController extends Controller
                     'conversion_qty' => $u['conversion_qty'],
                     'buy_price' => $u['buy_price'],
                     'sell_price' => $u['sell_price'],
+                    'weight' => $u['weight'] ?? 0,
                     'is_base_unit' => $index === 0, // Assume first is base
                 ]);
             }
@@ -217,6 +240,7 @@ class ProductController extends Controller
                         'conversion_qty' => $u['conversion_qty'],
                         'buy_price' => $u['buy_price'],
                         'sell_price' => $u['sell_price'],
+                        'weight' => $u['weight'] ?? 0,
                         'is_base_unit' => $index === 0,
                     ]);
                 }

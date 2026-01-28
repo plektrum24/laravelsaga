@@ -20,6 +20,7 @@ class ProductUnit extends Model
         'buy_price',
         'sell_price',
         'is_base_unit',
+        'weight',
     ];
 
     protected $casts = [

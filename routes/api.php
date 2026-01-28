@@ -60,3 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reports
     Route::get('/reports/assets', [\App\Http\Controllers\Api\ReportController::class, 'assets']);
 });
+
+// Diagnostic Route
+Route::get('/test-sort', function () {
+    return \App\Models\Product::orderBy('id', 'desc')->take(5)->get();
+});

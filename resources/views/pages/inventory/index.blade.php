@@ -101,7 +101,7 @@
         <div class="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 mb-6">
             <div class="flex flex-col md:flex-row gap-4 justify-between">
                 <div class="flex-1 relative">
-                    <input type="text" x-model="searchQuery" @input.debounce.500ms="fetchProducts()"
+                    <input type="text" x-model="searchQuery" @input.debounce.300ms="fetchProducts()"
                         placeholder="Search by name, SKU, or barcode..."
                         class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-white">
                     <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor"
@@ -119,27 +119,6 @@
                         </template>
                     </select>
 
-                    <div class="relative">
-                        <button @click="showSortMenu = !showSortMenu"
-                            class="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-white">
-                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
-                            </svg>
-                            <span x-text="sortLabel">Sort</span>
-                        </button>
-                        <div x-show="showSortMenu" @click.away="showSortMenu = false"
-                            class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg dark:bg-gray-800 dark:border-gray-700 z-10"
-                            x-cloak>
-                            <template x-for="opt in sortOptions" :key="opt.value">
-                                <button @click="sortBy = opt.value; sortProducts()"
-                                    class="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
-                                    :class="sortBy === opt.value ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20' : ''">
-                                    <span x-text="opt.label"></span>
-                                </button>
-                            </template>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -149,23 +128,43 @@
             class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm uppercase">
+                    <thead
+                        class="bg-gray-50 dark:bg-gray-900 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left border-b border-gray-200 dark:border-gray-700">
                         <tr>
                             <th class="px-4 py-3 text-center w-12">No</th>
-                            <th class="px-4 py-3 hidden md:table-cell">Image</th>
-                            <th class="px-4 py-3">Product Name</th>
+                            <th class="px-4 py-3 hidden md:table-cell w-16">Img</th>
+                            <th class="px-4 py-3 cursor-pointer hover:text-brand-600 transition-colors group"
+                                @click="toggleSort('name')">
+                                <div class="flex items-center gap-1">
+                                    Product Name
+                                    <span x-show="sortBy === 'name_asc'">↑</span>
+                                    <span x-show="sortBy === 'name_desc'">↓</span>
+                                </div>
+                            </th>
                             <th class="px-4 py-3">Category</th>
                             <th class="px-4 py-3">Unit</th>
                             <th class="px-4 py-3 text-right">Buy Price</th>
-                            <th class="px-4 py-3 text-right">Sell Price</th>
-                            <th class="px-4 py-3 text-center">Stock</th>
+                            <th class="px-4 py-3 text-right cursor-pointer hover:text-brand-600 transition-colors group"
+                                @click="toggleSort('price')">
+                                <div class="flex items-center justify-end gap-1">
+                                    Sell Price
+                                    <span x-show="sortBy === 'price_asc'">↑</span>
+                                    <span x-show="sortBy === 'price_desc'">↓</span>
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-center cursor-pointer hover:text-brand-600 transition-colors group"
+                                @click="toggleSort('stock')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Stock
+                                    <span x-show="sortBy === 'stock_asc'">↑</span>
+                                    <span x-show="sortBy === 'stock_desc'">↓</span>
+                                </div>
+                            </th>
                             <th class="px-4 py-3 text-center">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        <tr x-show="isLoading" class="animate-pulse">
-                            <td colspan="9" class="px-4 py-8 text-center text-gray-500">Loading products...</td>
-                        </tr>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800 transition-opacity duration-200"
+                        :class="isLoading ? 'opacity-50 pointer-events-none' : ''">
                         <tr x-show="!isLoading && products.length === 0">
                             <td colspan="9" class="px-4 py-8 text-center text-gray-500">
                                 <div class="flex flex-col items-center justify-center">
@@ -620,6 +619,15 @@
                         getRawValue(formattedValue) {
                             if (!formattedValue) return 0;
                             return parseInt(String(formattedValue).replace(/\./g, '')) || 0;
+                        },
+
+                        toggleSort(column) {
+                            if (this.sortBy.startsWith(column)) {
+                                this.sortBy = this.sortBy.endsWith('asc') ? column + '_desc' : column + '_asc';
+                            } else {
+                                this.sortBy = column + '_asc';
+                            }
+                            this.fetchProducts();
                         },
 
                         // Helper for max 2 decimals (strips zeros)
