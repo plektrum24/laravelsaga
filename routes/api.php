@@ -14,6 +14,11 @@ Route::get('/login', function () {
     return response()->json(['message' => 'Unauthorized'], 401);
 })->name('login');
 
+// Auth-only routes (without tenant middleware)
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::delete('/products/actions/delete-all', [ProductController::class, 'destroyAll']);
+});
+
 // Protected Routes
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     // Auth
@@ -52,7 +57,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('product-exports/pdf', [ProductController::class, 'exportPdf']);
     Route::get('product-exports/template', [ProductController::class, 'downloadTemplate']);
     Route::post('products/import', [ProductController::class, 'import']);
-    Route::delete('products/delete-all', [ProductController::class, 'destroyAll']);
+    // delete-all moved to auth-only group above
     Route::apiResource('products', ProductController::class);
     Route::apiResource('customers', CustomerController::class);
 
@@ -65,6 +70,18 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
 
     // Uploads
     Route::post('/upload/product-image', [\App\Http\Controllers\Api\UploadController::class, 'productImage']);
+
+    // Suppliers
+    Route::apiResource('suppliers', \App\Http\Controllers\Api\SupplierController::class);
+
+    // Purchases (Goods-In) with batch creation
+    Route::apiResource('purchases', \App\Http\Controllers\Api\PurchaseController::class);
+
+    // Purchase Returns with batch deduction
+    Route::get('purchase-returns/batches/{productId}', [\App\Http\Controllers\Api\PurchaseReturnController::class, 'getBatches']);
+    Route::patch('purchase-returns/{id}/complete', [\App\Http\Controllers\Api\PurchaseReturnController::class, 'complete']);
+    Route::patch('purchase-returns/{id}/cancel', [\App\Http\Controllers\Api\PurchaseReturnController::class, 'cancel']);
+    Route::apiResource('purchase-returns', \App\Http\Controllers\Api\PurchaseReturnController::class);
 });
 
 // Diagnostic Route

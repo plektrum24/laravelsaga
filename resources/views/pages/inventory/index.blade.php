@@ -838,9 +838,13 @@
                                 if (finalCheck.value === 'DELETE') {
                                     try {
                                         const token = localStorage.getItem('saga_token');
-                                        const response = await fetch('/api/products/delete-all', {
+                                        const response = await fetch('/api/products/actions/delete-all', {
                                             method: 'DELETE',
-                                            headers: { 'Authorization': 'Bearer ' + token }
+                                            headers: {
+                                                'Authorization': 'Bearer ' + token,
+                                                'Content-Type': 'application/json',
+                                                'Accept': 'application/json'
+                                            }
                                         });
                                         const data = await response.json();
 

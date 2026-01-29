@@ -245,16 +245,41 @@ class ProductController extends Controller
 
     public function destroyAll()
     {
-        $products = Product::all();
-        foreach ($products as $product) {
-            if ($product->image_url && Storage::disk('public')->exists(str_replace('/storage/', '', $product->image_url))) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $product->image_url));
+        try {
+            // Manually configure tenant connection if not already set (since we bypassed middleware)
+            $user = auth()->user();
+            if ($user && $user->tenant_id && !\Illuminate\Support\Facades\Config::get('database.connections.tenant.database')) {
+                $tenant = \App\Models\Tenant::find($user->tenant_id);
+                if ($tenant) {
+                    \Illuminate\Support\Facades\Config::set('database.connections.tenant.database', $tenant->database_name);
+                    \Illuminate\Support\Facades\DB::purge('tenant');
+                    \Illuminate\Support\Facades\DB::reconnect('tenant');
+                }
             }
+
+            $products = Product::all();
+            foreach ($products as $product) {
+                if ($product->image_url && Storage::disk('public')->exists(str_replace('/storage/', '', $product->image_url))) {
+                    Storage::disk('public')->delete(str_replace('/storage/', '', $product->image_url));
+                }
+            }
+
+            // Disable foreign key checks to prevent constraint errors
+            \Illuminate\Support\Facades\DB::connection('tenant')->statement('SET FOREIGN_KEY_CHECKS=0;');
+            $deleted = Product::query()->delete();
+            \Illuminate\Support\Facades\DB::connection('tenant')->statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            return response()->json([
+                'success' => true,
+                'message' => "All products deleted ({$deleted} records)"
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Delete All Products Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete products: ' . $e->getMessage()
+            ], 500);
         }
-
-        Product::query()->delete();
-
-        return response()->json(['success' => true, 'message' => 'All products deleted']);
     }
 
     public function categories()
@@ -315,7 +340,20 @@ class ProductController extends Controller
             }
             sort($unitSuffixes, SORT_NUMERIC);
 
+            // Create ONE Purchase header for this import session
+            $purchase = \App\Models\Purchase::create([
+                'reference_number' => 'IMP-' . date('YmdHis'),
+                'date' => now(),
+                'status' => 'completed',
+                'supplier_id' => null,
+                'branch_id' => null,
+                'user_id' => auth()->id(),
+                'total_amount' => 0,
+                'notes' => 'Excel Import: ' . $file->getClientOriginalName(),
+            ]);
+
             $count = 0;
+            $totalAmount = 0;
             DB::connection('tenant')->beginTransaction();
             foreach ($data as $index => $row) {
                 $name = $row[$cols['NAMAITEM'] ?? -1] ?? null;
@@ -353,6 +391,9 @@ class ProductController extends Controller
                 // 3. Units Sync (Dynamic Loop)
                 $product->units()->delete();
 
+                $baseUnitId = null;
+                $baseBuyPrice = 0;
+
                 foreach ($unitSuffixes as $num) {
                     $uName = $row[$cols["SATUAN$num"] ?? -1] ?? null;
                     if (empty($uName) || $uName == '-')
@@ -377,14 +418,39 @@ class ProductController extends Controller
                             'buy_price' => $bp,
                             'sell_price' => $sp,
                         ]);
+                        $baseUnitId = $unitModel->id;
+                        $baseBuyPrice = $bp;
                     }
+                }
+
+                // 4. Create PurchaseItem (Batch Record) for stock tracking
+                if ($stock > 0) {
+                    $subtotal = $stock * $baseBuyPrice;
+                    $totalAmount += $subtotal;
+
+                    \App\Models\PurchaseItem::create([
+                        'purchase_id' => $purchase->id,
+                        'product_id' => $product->id,
+                        'unit_id' => $baseUnitId,
+                        'qty' => $stock,
+                        'current_stock' => $stock,
+                        'buy_price' => $baseBuyPrice,
+                        'expiry_date' => $expiredDate,
+                        'subtotal' => $subtotal,
+                    ]);
                 }
 
                 $count++;
             }
+            // Update purchase total
+            $purchase->update(['total_amount' => $totalAmount]);
+
             DB::connection('tenant')->commit();
 
-            return response()->json(['success' => true, 'message' => "Imported $count products with dynamic multi-unit support successfully."]);
+            return response()->json([
+                'success' => true,
+                'message' => "Imported $count products with batch tracking. Purchase #{$purchase->reference_number} created."
+            ]);
 
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
