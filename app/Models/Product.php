@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use App\Traits\MultiTenantable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory, MultiTenantable; // SoftDeletes if column exists, checking schema... migration didn't show softDeletes in snippet, sticking to base.
+    use HasFactory; // SoftDeletes if column exists, checking schema... migration didn't show softDeletes in snippet, sticking to base.
+
+    protected $connection = 'tenant';
 
     protected $fillable = [
         'tenant_id',

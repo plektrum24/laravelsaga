@@ -9,6 +9,8 @@ class PurchaseItem extends Model
 {
     use HasFactory;
 
+    protected $connection = 'tenant';
+
     protected $fillable = [
         'purchase_id',
         'product_id',

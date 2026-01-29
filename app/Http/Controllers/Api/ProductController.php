@@ -10,6 +10,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductsExport;
+use App\Exports\ProductsTemplateExport;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProductController extends Controller
 {
@@ -38,9 +43,7 @@ class ProductController extends Controller
         }
 
         // Sort
-        // Clear any default sorts (scope, etc) to ensure our sort is primary
         $query->reorder();
-
         $sort = $request->sort ?? 'name_asc';
 
         switch ($sort) {
@@ -66,22 +69,14 @@ class ProductController extends Controller
                 $query->orderBy('name', 'asc');
         }
 
-        // DEBUG SQL
-        // dd($query->toSql());
-
-        // DEBUG SQL
-        // dd($query->toSql());
-
         $limit = $request->limit ?? 40;
         $products = $query->paginate($limit);
 
         $products->getCollection()->transform(function ($product) {
             $product->units = $product->units->map(function ($productUnit) {
-                // Ensure prices are numbers
                 $productUnit->conversion_qty = (float) $productUnit->conversion_qty;
                 return $productUnit;
             });
-            // Attach master/base unit info for convenience
             $baseUnit = $product->units->where('is_base_unit', true)->first();
             if ($baseUnit) {
                 $product->base_unit_name = $baseUnit->unit->name ?? '-';
@@ -91,8 +86,6 @@ class ProductController extends Controller
             return $product;
         });
 
-        // CRITICAL FIX: Reset keys to 0,1,2... to ensure JSON array, NOT object
-        // This prevents frontend "Object Key Sorting" issues
         $products->setCollection($products->getCollection()->values());
 
         return response()->json([
@@ -120,16 +113,16 @@ class ProductController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => ['required', \Illuminate\Validation\Rule::exists(Category::class, 'id')],
             'units' => 'required|array|min:1',
-            'units.*.unit_id' => 'required|exists:units,id',
+            'units.*.unit_id' => ['required', \Illuminate\Validation\Rule::exists(Unit::class, 'id')],
             'units.*.conversion_qty' => 'required|numeric',
             'units.*.buy_price' => 'required|numeric',
             'units.*.sell_price' => 'required|numeric',
         ]);
 
         try {
-            DB::beginTransaction();
+            DB::connection('tenant')->beginTransaction();
 
             $data = $request->only([
                 'name',
@@ -141,7 +134,6 @@ class ProductController extends Controller
                 'branch_id'
             ]);
 
-            // Generate SKU if empty
             if (empty($request->sku)) {
                 $category = Category::find($request->category_id);
                 $prefix = strtoupper(substr($category->name ?? 'GEN', 0, 3));
@@ -150,23 +142,12 @@ class ProductController extends Controller
                 $data['sku'] = $request->sku;
             }
 
-            // Image Upload
             if ($request->hasFile('image')) {
                 $path = $request->file('image')->store('products', 'public');
                 $data['image_url'] = url('storage/' . $path);
             } elseif ($request->image_url) {
-                // Keep existing url if passed (edit mode mostly, but store generally new)
                 $data['image_url'] = $request->image_url;
             }
-
-            // Base Unit (Largest/First) logic
-            // Frontend sends largest unit last usually, or we pick first? 
-            // The Logic in View: stock is input in largest unit. 
-            // We need to determine base unit pricing for the main product table.
-
-            // Simplify: Take the first unit as "Base" for main table display? 
-            // Or the one marked is_base_unit?
-            // Frontend logic seems to force first unit in array as base.
 
             $mainUnit = $request->units[0];
             $data['buy_price'] = $mainUnit['buy_price'];
@@ -176,7 +157,6 @@ class ProductController extends Controller
 
             $product = Product::create($data);
 
-            // Sync Units
             foreach ($request->units as $index => $u) {
                 $product->units()->create([
                     'unit_id' => $u['unit_id'],
@@ -184,15 +164,15 @@ class ProductController extends Controller
                     'buy_price' => $u['buy_price'],
                     'sell_price' => $u['sell_price'],
                     'weight' => $u['weight'] ?? 0,
-                    'is_base_unit' => $index === 0, // Assume first is base
+                    'is_base_unit' => $index === 0,
                 ]);
             }
 
-            DB::commit();
+            DB::connection('tenant')->commit();
             return response()->json(['success' => true, 'message' => 'Product saved', 'data' => $product]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::connection('tenant')->rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -201,12 +181,8 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
 
-        // Similar validation and logic as store, but updating.
-        // For brevity in this turn, assuming standard update logic.
-        // Implementing full update logic:
-
         try {
-            DB::beginTransaction();
+            DB::connection('tenant')->beginTransaction();
 
             $data = $request->only([
                 'name',
@@ -220,9 +196,10 @@ class ProductController extends Controller
             if ($request->hasFile('image')) {
                 $path = $request->file('image')->store('products', 'public');
                 $data['image_url'] = url('storage/' . $path);
+            } elseif ($request->image_url) {
+                $data['image_url'] = $request->image_url;
             }
 
-            // Update Pricing from first unit
             if (!empty($request->units)) {
                 $mainUnit = $request->units[0];
                 $data['buy_price'] = $mainUnit['buy_price'];
@@ -231,7 +208,6 @@ class ProductController extends Controller
 
             $product->update($data);
 
-            // Re-create units
             if (!empty($request->units)) {
                 $product->units()->delete();
                 foreach ($request->units as $index => $u) {
@@ -246,11 +222,11 @@ class ProductController extends Controller
                 }
             }
 
-            DB::commit();
+            DB::connection('tenant')->commit();
             return response()->json(['success' => true, 'data' => $product]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::connection('tenant')->rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -259,7 +235,6 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
 
-        // Delete image if exists
         if ($product->image_url && Storage::disk('public')->exists(str_replace('/storage/', '', $product->image_url))) {
             Storage::disk('public')->delete(str_replace('/storage/', '', $product->image_url));
         }
@@ -277,13 +252,6 @@ class ProductController extends Controller
             }
         }
 
-        // Use truncate to reset ID counter if possible, but delete is safer for relations
-        // However, user asked to "delete all items".
-        // DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        // Product::truncate();
-        // DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-        // Safer approach:
         Product::query()->delete();
 
         return response()->json(['success' => true, 'message' => 'All products deleted']);
@@ -307,7 +275,6 @@ class ProductController extends Controller
         return response()->json(['success' => true, 'data' => ['sku' => $sku]]);
     }
 
-    // Support creating units on the fly
     public function storeUnit(Request $request)
     {
         $request->validate(['name' => 'required']);
@@ -326,97 +293,125 @@ class ProductController extends Controller
 
         $file = $request->file('file');
 
-        // Simple CSV Parser (assuming CSV for now based on template)
-        // If XLSX needed later, we can add Imports/ProductImport class
-
-        $path = $file->getRealPath();
-        $data = array_map('str_getcsv', file($path));
-        $header = array_shift($data); // Skip header
-
-        // Mapping based on Template:
-        // 0:Name, 1:SKU, 2:Category, 3:Unit, 4:Buy, 5:Sell, 6:Stock, 7:Min, 8:Exp
-
-        $count = 0;
-        $errors = [];
-
-        DB::beginTransaction();
         try {
-            foreach ($data as $index => $row) {
-                if (count($row) < 4)
-                    continue; // Skip empty rows
+            $arrays = Excel::toArray(new \stdClass(), $file);
+            $data = $arrays[0];
+            $headerRow = array_shift($data);
 
-                $name = $row[0];
-                $sku = $row[1] ?: 'SKU-' . strtoupper(Str::random(6)); // Auto SKU if empty
-                $categoryName = $row[2];
-                $unitName = $row[3];
-                $buyPrice = floatval(str_replace([',', '.'], '', $row[4] ?? 0)); // Remove separators
-                $sellPrice = floatval(str_replace([',', '.'], '', $row[5] ?? 0));
-                $stock = floatval(str_replace([',', '.'], '', $row[6] ?? 0));
-                $minStock = floatval(str_replace([',', '.'], '', $row[7] ?? 0));
-                $expiredDate = isset($row[8]) && strtotime($row[8]) ? date('Y-m-d', strtotime($row[8])) : null;
+            // 1. Map header indices dynamically
+            $cols = [];
+            foreach ($headerRow as $i => $h) {
+                if (empty($h))
+                    continue;
+                $cols[strtoupper(trim($h))] = $i;
+            }
+
+            // Identify all units present (SATUAN1, SATUAN2, ...)
+            $unitSuffixes = [];
+            foreach (array_keys($cols) as $key) {
+                if (preg_match('/^SATUAN(\d+)$/', $key, $matches)) {
+                    $unitSuffixes[] = $matches[1];
+                }
+            }
+            sort($unitSuffixes, SORT_NUMERIC);
+
+            $count = 0;
+            DB::connection('tenant')->beginTransaction();
+            foreach ($data as $index => $row) {
+                $name = $row[$cols['NAMAITEM'] ?? -1] ?? null;
+                if (empty($name))
+                    continue;
+
+                $barcode = $row[$cols['BARCODE'] ?? -1] ?? null;
+                $categoryName = $row[$cols['KATEGORI'] ?? -1] ?? 'General';
+                $stock = floatval(str_replace([',', ' '], '', $row[$cols['STOK'] ?? -1] ?? 0));
+                $minStock = floatval(str_replace([',', ' '], '', $row[$cols['STOKMIN'] ?? -1] ?? 0));
+                $expiryStr = $row[$cols['EXPIRY'] ?? -1] ?? null;
+                $expiredDate = (!empty($expiryStr) && strtotime($expiryStr)) ? date('Y-m-d', strtotime($expiryStr)) : null;
+
+                // Find by name since SKU is hidden in export but used internally
+                $product = Product::on('tenant')->where('name', $name)->first();
+                $sku = $product ? $product->sku : 'SKU-' . strtoupper(Str::random(6));
 
                 // 1. Category
-                $category = Category::firstOrCreate(
-                    ['name' => $categoryName],
-                    ['description' => 'Imported']
-                );
+                $category = Category::firstOrCreate(['name' => $categoryName]);
 
-                // 2. Unit
-                $unit = Unit::firstOrCreate(
-                    ['name' => $unitName]
-                );
-
-                // 3. Product (Base)
+                // 2. Product Base
                 $product = Product::updateOrCreate(
-                    ['sku' => $sku],
+                    ['name' => $name],
                     [
-                        'name' => $name,
+                        'sku' => $sku,
+                        'barcode' => $barcode,
                         'category_id' => $category->id,
                         'stock' => $stock,
                         'min_stock' => $minStock,
                         'expired_date' => $expiredDate,
-                        'buy_price' => $buyPrice,
-                        'sell_price' => $sellPrice,
                         'is_active' => true,
-                        // If updating, we keep existing image, else null
                     ]
                 );
 
-                // 4. Product Unit (Base Unit)
-                // Check if base unit exists
-                $baseUnit = $product->units()->where('is_base_unit', true)->first();
-                if ($baseUnit) {
-                    $baseUnit->update([
-                        'unit_id' => $unit->id,
-                        'buy_price' => $buyPrice,
-                        'sell_price' => $sellPrice,
-                        'conversion_qty' => 1
-                    ]);
-                } else {
+                // 3. Units Sync (Dynamic Loop)
+                $product->units()->delete();
+
+                foreach ($unitSuffixes as $num) {
+                    $uName = $row[$cols["SATUAN$num"] ?? -1] ?? null;
+                    if (empty($uName) || $uName == '-')
+                        continue;
+
+                    $conv = floatval(str_replace([',', ' '], '', $row[$cols["KONVERSI$num"] ?? -1] ?? 1));
+                    $bp = floatval(str_replace([',', ' '], '', $row[$cols["HARGABELI$num"] ?? -1] ?? 0));
+                    $sp = floatval(str_replace([',', ' '], '', $row[$cols["HARGAJUAL$num"] ?? -1] ?? 0));
+
+                    $unitModel = Unit::firstOrCreate(['name' => $uName]);
+
                     $product->units()->create([
-                        'unit_id' => $unit->id,
-                        'is_base_unit' => true,
-                        'conversion_qty' => 1,
-                        'buy_price' => $buyPrice,
-                        'sell_price' => $sellPrice
+                        'unit_id' => $unitModel->id,
+                        'is_base_unit' => ($conv == 1),
+                        'conversion_qty' => $conv,
+                        'buy_price' => $bp,
+                        'sell_price' => $sp,
                     ]);
+
+                    if ($conv == 1) {
+                        $product->update([
+                            'buy_price' => $bp,
+                            'sell_price' => $sp,
+                        ]);
+                    }
                 }
 
                 $count++;
             }
-            DB::commit();
+            DB::connection('tenant')->commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => "Imported $count products successfully."
-            ]);
+            return response()->json(['success' => true, 'message' => "Imported $count products with dynamic multi-unit support successfully."]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::connection('tenant')->rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Import failed on row ' . ($count + 1) . ': ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function exportExcel()
+    {
+        Log::info('ProductController: exportExcel called');
+        return Excel::download(new ProductsExport('tenant'), 'products_' . date('Y-m-d') . '.xlsx');
+    }
+
+    public function exportPdf()
+    {
+        Log::info('ProductController: exportPdf called');
+        $products = Product::on('tenant')->with(['category', 'units.unit'])->get();
+        $pdf = Pdf::loadView('exports.products_pdf', compact('products'));
+        return $pdf->download('products_' . date('Y-m-d') . '.pdf');
+    }
+
+    public function downloadTemplate()
+    {
+        Log::info('ProductController: downloadTemplate called');
+        return Excel::download(new ProductsTemplateExport, 'template_import_produk.xlsx');
     }
 }

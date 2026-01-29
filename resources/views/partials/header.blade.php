@@ -1,8 +1,8 @@
-<header x-data="{ 
+<header x-data="{
   menuToggle: false,
   currentTenant: JSON.parse(localStorage.getItem('saga_tenant') || '{}'),
-  currentUser: JSON.parse(localStorage.getItem('saga_user') || '{" name": "Guest" , "role" : "guest" }') }"
-  class="sticky top-0 z-[999] flex w-full border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900">
+  currentUser: JSON.parse(localStorage.getItem('saga_user') || '{}')
+}" class="sticky top-0 z-[999] flex w-full border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900">
   <div class="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
     <div
       class="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4 dark:border-gray-800">
@@ -75,7 +75,10 @@
         <!-- Dark Mode Toggler -->
         <button
           class="hover:text-dark-900 relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-          @click.prevent="darkMode = !darkMode">
+          @click.prevent="
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('darkMode', JSON.stringify(isDark));
+          ">
           <svg class="hidden dark:block" width="20" height="20" viewBox="0 0 20 20" fill="none"
             xmlns="http://www.w3.org/2000/svg">
             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -230,7 +233,7 @@
           </ul>
 
           <button type="button"
-            @click="localStorage.removeItem('saga_token'); localStorage.removeItem('saga_user'); localStorage.removeItem('saga_tenant'); localStorage.removeItem('saga_selected_branch'); window.location.href = '{{ route('signin') }}'"
+            @click="localStorage.removeItem('saga_token'); localStorage.removeItem('saga_user'); localStorage.removeItem('saga_tenant'); localStorage.removeItem('saga_selected_branch'); window.location.href = '{{ route('login') }}'"
             class="group text-theme-sm mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
             Sign Out
           </button>

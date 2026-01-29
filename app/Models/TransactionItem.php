@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class TransactionItem extends Model
 {
     use HasFactory;
+
+    protected $connection = 'tenant';
+
     // MultiTenantable via Transaction parent relationship primarily, but can add if table has tenant_id. 
     // Migration "add_tenant_id_to_all_tables" included 'transaction_items'? 
     // Let's check the migration content again. It listed 'branches', 'categories', 'units', 'suppliers', 'customers', 'products', 'inventory_movements'. 

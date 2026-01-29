@@ -207,8 +207,11 @@
         // Dark Mode & Preloader Logic
         (function () {
             const darkMode = JSON.parse(localStorage.getItem('darkMode') || 'false');
-            if (darkMode) {
+            if (darkMode === true) {
                 document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('darkMode', 'false');
             }
             window.hidePreloader = function () {
                 const preloader = document.getElementById('app-preloader');

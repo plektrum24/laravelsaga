@@ -7,6 +7,8 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
+use Illuminate\Validation\Rule;
+
 class CategoryController extends Controller
 {
     /**
@@ -24,7 +26,7 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name',
+            'name' => ['required', 'string', 'max:255', Rule::unique(Category::class, 'name')],
         ]);
 
         $category = Category::create([
@@ -52,7 +54,7 @@ class CategoryController extends Controller
         $category = Category::findOrFail($id);
 
         $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+            'name' => ['required', 'string', 'max:255', Rule::unique(Category::class, 'name')->ignore($category->id)],
         ]);
 
         $category->update([

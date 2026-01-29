@@ -11,16 +11,22 @@ class Tenant extends Model
 
     protected $fillable = [
         'name',
+        'code',
+        'address',
+        'phone',
         'owner_name',
         'business_type',
         'subscription_plan',
         'domain',
         'database_name',
+        'status',
         'is_active',
+        'valid_until',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'valid_until' => 'date',
     ];
 
     public function users()
@@ -36,5 +42,9 @@ class Tenant extends Model
     public function products()
     {
         return $this->hasMany(Product::class);
+    }
+    public function hasExpired()
+    {
+        return $this->valid_until && \Carbon\Carbon::parse($this->valid_until)->endOfDay()->isPast();
     }
 }

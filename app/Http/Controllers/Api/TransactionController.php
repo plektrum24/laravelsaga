@@ -34,7 +34,7 @@ class TransactionController extends Controller
         ]);
 
         try {
-            DB::beginTransaction();
+            DB::connection('tenant')->beginTransaction();
 
             // Calculate Totals verification
             $subtotal = 0;
@@ -44,14 +44,15 @@ class TransactionController extends Controller
                 // Fetch product for secure price
                 // For optimal perf we could fetchAll whereIn id, but loop is fine for POS cart size
                 $product = Product::find($item['id']);
-                if (!$product) continue;
+                if (!$product)
+                    continue;
 
                 $qty = $item['qty'];
                 // Logic for unit price? For now assume base price or passed price verified
                 // Simplification for rapid dev: Trust frontend sending correct price but verify basic existence
                 // Ideally: Find distinct price based on unit.
-                
-                $price = $item['price']; 
+
+                $price = $item['price'];
                 $lineTotal = $price * $qty;
                 $subtotal += $lineTotal;
 
@@ -92,16 +93,16 @@ class TransactionController extends Controller
                 $transaction->items()->create($item);
             }
 
-            DB::commit();
+            DB::connection('tenant')->commit();
 
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Transaction success',
                 'data' => $transaction
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::connection('tenant')->rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }

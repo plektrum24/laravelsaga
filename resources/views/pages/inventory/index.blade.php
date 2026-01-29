@@ -49,6 +49,16 @@
                     Scanner Ready
                 </div>
 
+                <!-- Import Button -->
+                <button @click="triggerImport()"
+                    class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    <span class="hidden md:inline">Import</span>
+                </button>
+
                 <!-- Export Dropdown -->
                 <div class="relative">
                     <button @click="showExportMenu = !showExportMenu"
@@ -63,34 +73,50 @@
                         </svg>
                     </button>
                     <div x-show="showExportMenu" @click.away="showExportMenu = false"
-                        class="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border dark:bg-gray-800 dark:border-gray-700 z-10"
-                        x-cloak>
+                        class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl dark:bg-gray-800 z-[100]" x-cloak>
                         <button @click="exportExcel()"
-                            class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 00-2-2h-2a2 2 0 00-2 2">
-                                </path>
-                            </svg>
-                            Excel
+                            class="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-colors first:rounded-t-xl">
+                            <div
+                                class="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 00-2-2h-2a2 2 0 00-2 2">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-semibold text-gray-700 dark:text-gray-200">Excel (.xlsx)</span>
+                                <span class="text-[10px] text-gray-400">Microsoft Excel Format</span>
+                            </div>
                         </button>
                         <button @click="exportPDF()"
-                            class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
-                                </path>
-                            </svg>
-                            PDF
+                            class="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-colors">
+                            <div class="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-semibold text-gray-700 dark:text-gray-200">PDF Document</span>
+                                <span class="text-[10px] text-gray-400">Portable PDF Format</span>
+                            </div>
                         </button>
-                        <div class="border-t dark:border-gray-700 my-1"></div>
-                        <button @click="downloadTemplate(); triggerImport()"
-                            class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                            </svg>
-                            Import
+                        <div class="border-t border-gray-100 dark:border-gray-700"></div>
+                        <button @click="downloadTemplate()"
+                            class="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-colors last:rounded-b-xl">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-semibold text-gray-700 dark:text-gray-200">Download Template</span>
+                                <span class="text-[10px] text-gray-400">Standard Import Format</span>
+                            </div>
                         </button>
                     </div>
                 </div>
@@ -178,7 +204,7 @@
                                 </div>
                             </td>
                         </tr>
-                        <template x-for="(product, index) in products" :key="product.id">
+                        <template x-for="(product, index) in products" :key="index">
                             <template
                                 x-for="(unit, uIndex) in (product.units && product.units.length > 0 ? product.units : [{unit_name: product.base_unit_name || '-', conversion_qty: 1, buy_price: product.buy_price, sell_price: product.sell_price}])"
                                 :key="product.id + '-' + uIndex">
@@ -211,7 +237,7 @@
                                         x-text="product.category ? product.category.name : '-'"></td>
                                     <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 align-middle">
                                         <div class="flex items-center gap-2">
-                                            <span x-text="unit.unit_name"></span>
+                                            <span x-text="unit.unit ? unit.unit.name : '-'"></span>
                                             <span x-show="unit.conversion_qty > 1" class="text-xs text-gray-400"
                                                 x-text="'(1:' + formatNumber(unit.conversion_qty) + ')'"></span>
                                         </div>
@@ -230,8 +256,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-center align-middle" x-show="uIndex === 0"
                                         :rowspan="product.units && product.units.length > 0 ? product.units.length : 1">
-                                        <div
-                                            class="flex items-center justify-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div class="flex items-center justify-center gap-2">
                                             <button @click="openEditModal(product)"
                                                 class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
                                                 title="Edit">
@@ -702,7 +727,8 @@
                                 if (response.ok) {
                                     const data = await response.json();
                                     if (data.success) {
-                                        this.products = data.data.products;
+                                        this.products = [...data.data.products];
+
                                         this.totalPages = data.data.pagination.totalPages || 1;
                                         this.totalItems = data.data.pagination.total || 0;
                                     }
@@ -728,10 +754,28 @@
                         async generateSku() {
                             if (!this.currentProduct.category_id) { this.generatedSku = ''; return; }
                             const token = localStorage.getItem('saga_token');
-                            const response = await fetch('/api/products/generate-sku/' + this.currentProduct.category_id,
-                                { headers: { 'Authorization': 'Bearer ' + token } });
-                            const data = await response.json();
-                            if (data.success) this.generatedSku = data.data.sku;
+                            try {
+                                console.log('Generating SKU for category:', this.currentProduct.category_id);
+                                const response = await fetch('/api/products/generate-sku/' + this.currentProduct.category_id,
+                                    { headers: { 'Authorization': 'Bearer ' + token } });
+
+                                if (!response.ok) {
+                                    console.error('SKU generation failed:', response.status, await response.text());
+                                    this.generatedSku = 'GEN-' + Date.now(); // Fallback SKU
+                                    return;
+                                }
+
+                                const data = await response.json();
+                                if (data.success) {
+                                    this.generatedSku = data.data.sku;
+                                } else {
+                                    console.error('SKU generation error:', data.message);
+                                    this.generatedSku = 'GEN-' + Date.now();
+                                }
+                            } catch (error) {
+                                console.error('SKU generation exception:', error);
+                                this.generatedSku = 'GEN-' + Date.now(); // Fallback SKU
+                            }
                         },
 
                         openAddModal() {
@@ -977,19 +1021,40 @@
 
                         triggerImport() { document.getElementById('importFileInput').click(); },
 
+                        async downloadFile(endpoint, filename) {
+                            const token = localStorage.getItem('saga_token');
+                            try {
+                                const response = await fetch(endpoint, {
+                                    headers: { 'Authorization': 'Bearer ' + token }
+                                });
+                                if (response.ok) {
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = filename;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                } else {
+                                    Swal.fire('Error', 'Failed to download file', 'error');
+                                }
+                            } catch (error) {
+                                console.error('Download error:', error);
+                                Swal.fire('Error', 'Server error during download', 'error');
+                            }
+                        },
+
                         downloadTemplate() {
-                            // Simple CSV Template
-                            const headers = ['Product Name', 'SKU', 'Category', 'Unit', 'Buy Price', 'Sell Price', 'Stock', 'Min Stock', 'Expired Date (YYYY-MM-DD)'];
-                            const rows = [
-                                ['Contoh Produk', 'SKU-001', 'Minuman', 'Pcs', '5000', '7000', '100', '10', '2025-12-31']
-                            ];
-                            let csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].map(e => e.join(",")).join("\n");
-                            const link = document.createElement("a");
-                            link.setAttribute("href", encodeURI(csvContent));
-                            link.setAttribute("download", "template_import_produk.csv");
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
+                            this.downloadFile('/api/product-exports/template', 'template_import_produk.xlsx');
+                        },
+
+                        exportExcel() {
+                            this.downloadFile('/api/product-exports/excel', 'products_' + new Date().toISOString().split('T')[0] + '.xlsx');
+                        },
+
+                        exportPDF() {
+                            this.downloadFile('/api/product-exports/pdf', 'products_' + new Date().toISOString().split('T')[0] + '.pdf');
                         },
 
                         async handleImport(event) {
@@ -1012,14 +1077,6 @@
                                 }
                             } catch (e) { console.error(e); Swal.fire({ icon: 'error', title: 'Error', text: 'Server error' }); }
                             finally { event.target.value = ''; }
-                        },
-
-                        exportExcel() {
-                            Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'Fitur Export Excel sedang disiapkan bersamaan dengan backend.' });
-                        },
-
-                        exportPDF() {
-                            Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'Fitur Export PDF sedang disiapkan.' });
                         }
                     }
                 }

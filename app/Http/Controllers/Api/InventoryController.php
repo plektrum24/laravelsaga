@@ -16,11 +16,11 @@ class InventoryController extends Controller
             'type' => 'required|in:add,subtract',
             'quantity' => 'required|numeric|min:0.01',
             'reason' => 'nullable|string',
-            'branch_id' => 'nullable|exists:branches,id'
+            'branch_id' => ['nullable', \Illuminate\Validation\Rule::exists(\App\Models\Branch::class, 'id')]
         ]);
 
         try {
-            DB::beginTransaction();
+            DB::connection('tenant')->beginTransaction();
             $product = Product::findOrFail($id);
 
             $oldStock = $product->stock;
@@ -50,12 +50,12 @@ class InventoryController extends Controller
                 'updated_at' => now(),
             ]);
 
-            DB::commit();
+            DB::connection('tenant')->commit();
 
             return response()->json(['success' => true, 'message' => 'Stock berhasil diupdate']);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::connection('tenant')->rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }

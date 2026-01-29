@@ -23,7 +23,24 @@ Route::get('/signup', function () {
 })->name('signup');
 Route::get('/signin', function () {
     return view('pages.auth.signin');
-})->name('signin');
+})->name('login'); // Named 'login' for Laravel auth redirect
+
+// Super Admin Routes (use 'web' for testing, should add auth later)
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', function () {
+        return redirect()->route('admin.dashboard');
+    });
+
+    Route::get('/dashboard', function () {
+        return view('pages.admin.dashboard');
+    })->name('dashboard');
+
+    Route::get('/tenants', [\App\Http\Controllers\Admin\TenantController::class, 'index'])->name('tenants.index');
+    Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+    Route::get('/reports', [\App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('reports.index');
+    Route::get('/license', [\App\Http\Controllers\Admin\LicenseController::class, 'index'])->name('license.index');
+    Route::post('/license/generate', [\App\Http\Controllers\Admin\LicenseController::class, 'generate'])->name('license.generate');
+});
 
 // Inventory Routes
 Route::prefix('inventory')->name('inventory.')->group(function () {

@@ -60,7 +60,8 @@
   }" x-init="init()">
   <!-- Logo -->
   <div class="flex items-center justify-center h-16 border-b border-gray-100 dark:border-gray-800">
-    <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
+    <a :href="isSuperAdmin() ? '{{ route('admin.dashboard') }}' : '{{ route('dashboard') }}'"
+      class="flex items-center gap-2">
       <!-- Show tenant logo if available, otherwise show default S icon -->
       <img x-show="currentTenant.logo_url" :src="currentTenant.logo_url" alt="Logo"
         class="w-9 h-9 rounded-lg object-contain bg-white dark:bg-gray-800">
@@ -85,8 +86,8 @@
 
           <ul class="space-y-1">
             <li>
-              <a href="{{ route('dashboard') }}" class="sidebar-menu-item"
-                :class="page === 'adminDashboard' ? 'sidebar-menu-active' : ''">
+              <a href="{{ route('admin.dashboard') }}" class="sidebar-menu-item"
+                :class="page === 'admin.dashboard' ? 'sidebar-menu-active' : ''">
                 <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
                 </svg>
@@ -94,8 +95,8 @@
               </a>
             </li>
             <li>
-              <a href="admin-tenants.html" class="sidebar-menu-item"
-                :class="page === 'adminTenants' ? 'sidebar-menu-active' : ''">
+              <a href="{{ route('admin.tenants.index') }}" class="sidebar-menu-item"
+                :class="page === 'admin.tenants.index' ? 'sidebar-menu-active' : ''">
                 <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path
                     d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10z" />
@@ -104,8 +105,8 @@
               </a>
             </li>
             <li>
-              <a href="admin-users.html" class="sidebar-menu-item"
-                :class="page === 'adminUsers' ? 'sidebar-menu-active' : ''">
+              <a href="{{ route('admin.users.index') }}" class="sidebar-menu-item"
+                :class="page === 'admin.users.index' ? 'sidebar-menu-active' : ''">
                 <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path
                     d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
@@ -114,8 +115,8 @@
               </a>
             </li>
             <li>
-              <a href="admin-reports.html" class="sidebar-menu-item"
-                :class="page === 'adminReports' ? 'sidebar-menu-active' : ''">
+              <a href="{{ route('admin.reports.index') }}" class="sidebar-menu-item"
+                :class="page === 'admin.reports.index' ? 'sidebar-menu-active' : ''">
                 <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path
                     d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
@@ -124,8 +125,8 @@
               </a>
             </li>
             <li>
-              <a href="admin-license.html" class="sidebar-menu-item"
-                :class="page === 'adminLicense' ? 'sidebar-menu-active' : ''">
+              <a href="{{ route('admin.license.index') }}" class="sidebar-menu-item"
+                :class="page === 'admin.license.index' ? 'sidebar-menu-active' : ''">
                 <svg class="sidebar-menu-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path
                     d="M20 6h-2.18c-.11-.31-.26-.59-.44-.86C16.89 3.99 15.6 3.12 14.12 2.6L14.5 1H9.5l.38 1.6C7.5 3.5 6 5.5 6 8c0 1.5.6 2.9 1.6 4h-.1L6 14v6.5l3.5 2.5 3.5-2.5 3.5 2.5V16l-1-2h2c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6.5-1c1.4 0 2.5 1.1 2.5 2.5S14.9 10 13.5 10s-2.5-1.1-2.5-2.5S12.1 5 13.5 5zm5 9H9v-2h9.5v2z" />

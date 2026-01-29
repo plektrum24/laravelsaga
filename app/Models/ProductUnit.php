@@ -3,14 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class ProductUnit extends Model
+class ProductUnit extends Pivot
 {
+    // toggle trait
     use HasFactory;
-    // MultiTenantable might not be needed if directly linked to Product which has tenant_id, but safer to check schema. 
-    // Schema update added tenant_id to all tables, so yes, use trait.
-    use \App\Traits\MultiTenantable;
+
+    protected $connection = 'tenant';
+    protected $table = 'product_units';
 
     protected $fillable = [
         'tenant_id',

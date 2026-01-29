@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
-use App\Traits\MultiTenantable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Purchase extends Model
 {
-    use HasFactory, MultiTenantable;
+    use HasFactory;
+
+    protected $connection = 'tenant';
 
     protected $fillable = [
         'tenant_id',

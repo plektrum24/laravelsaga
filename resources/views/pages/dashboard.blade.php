@@ -4,159 +4,162 @@
 
 @section('content')
     <div x-data="{
-                            stats: { today: { orders: 0, sales: 0 }, week: 0, month: 0, lowStockCount: 0, weeklyChart: [] },
-                            priceLogs: [],
-                            isLoading: true,
-                            user: @json(auth()->user()),
+                                    stats: { today: { orders: 0, sales: 0 }, week: 0, month: 0, lowStockCount: 0, weeklyChart: [] },
+                                    priceLogs: [],
+                                    isLoading: true,
+                                    user: @json(auth()->user()),
 
-                            async init() {
-                                const token = localStorage.getItem('saga_token');
-                                if (!token) {
-                                    window.location.href = '{{ route('signin') }}';
-                                    return;
-                                }
-                                await this.fetchDashboard();
-                                await this.fetchPriceLogs();
-                            },
+                                    async init() {
+                                        const token = localStorage.getItem('saga_token');
+                                        if (!token) {
+                                            window.location.href = '{{ route('login') }}';
+                                            return;
+                                        }
+                                        await this.fetchDashboard();
+                                        await this.fetchPriceLogs();
+                                    },
 
-                            async fetchDashboard() {
-                                try {
-                                    const token = localStorage.getItem('saga_token');
-                                    let url = '/api/reports/dashboard';
+                                    async fetchDashboard() {
+                                        try {
+                                            const token = localStorage.getItem('saga_token');
+                                            let url = '/api/reports/dashboard';
 
-                                    // Handle branch selection if implemented in API
-                                    const selectedBranch = localStorage.getItem('saga_selected_branch');
-                                    const user = this.user || JSON.parse(localStorage.getItem('saga_user') || '{}');
+                                            // Handle branch selection if implemented in API
+                                            const selectedBranch = localStorage.getItem('saga_selected_branch');
+                                            const user = this.user || JSON.parse(localStorage.getItem('saga_user') || '{}');
 
-                                    if (user.role === 'tenant_owner' && selectedBranch) {
-                                        url += '?branch_id=' + selectedBranch;
-                                    } else if (user.branch_id) {
-                                        url += '?branch_id=' + user.branch_id;
-                                    }
+                                            if (user.role === 'tenant_owner' && selectedBranch) {
+                                                url += '?branch_id=' + selectedBranch;
+                                            } else if (user.branch_id) {
+                                                url += '?branch_id=' + user.branch_id;
+                                            }
 
-                                    // Mocking data if API fails or for demo (Remove in production)
-                                    // In exact migration we assume API works, but basic structure is needed.
-                                    /*
-                                    this.stats = {
-                                        today: { orders: 12, sales: 15600000 },
-                                        week: 45000000,
-                                        lowStockCount: 3,
-                                        weeklyChart: [
-                                           { date: '2023-10-01', total: 500000 },
-                                           { date: '2023-10-02', total: 1500000 },
-                                           // ...
-                                        ]
-                                    };
-                                    */
+                                            // Mocking data if API fails or for demo (Remove in production)
+                                            // In exact migration we assume API works, but basic structure is needed.
+                                            /*
+                                            this.stats = {
+                                                today: { orders: 12, sales: 15600000 },
+                                                week: 45000000,
+                                                lowStockCount: 3,
+                                                weeklyChart: [
+                                                   { date: '2023-10-01', total: 500000 },
+                                                   { date: '2023-10-02', total: 1500000 },
+                                                   // ...
+                                                ]
+                                            };
+                                            */
 
-                                    const response = await fetch(url, {
-                                        headers: { 'Authorization': 'Bearer ' + token }
-                                    });
+                                            const response = await fetch(url, {
+                                                headers: { 'Authorization': 'Bearer ' + token }
+                                            });
 
-                                    if (response.ok) {
-                                        const data = await response.json();
-                                        if (data.success) {
-                                            this.stats = data.data;
+                                            if (response.ok) {
+                                                const data = await response.json();
+                                                if (data.success) {
+                                                    this.stats = data.data;
+                                                }
+                                            }
+                                        } catch (error) {
+                                            console.error('Dashboard fetch error:', error);
+                                        } finally {
+                                            this.isLoading = false;
+                                        }
+                                    },
+
+                                    async fetchPriceLogs() {
+                                        try {
+                                            const token = localStorage.getItem('saga_token');
+                                            const response = await fetch('/api/products/reports/price-logs?limit=5', {
+                                                headers: { 'Authorization': 'Bearer ' + token }
+                                            });
+                                            if (response.ok) {
+                                                const data = await response.json();
+                                                if (data.success) {
+                                                    this.priceLogs = data.data;
+                                                }
+                                            }
+                                        } catch (error) {
+                                            console.error('Fetch price logs error:', error);
+                                        }
+                                    },
+
+                                    formatCurrency(amount) {
+                                        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
+                                    },
+
+                                    checkRole(allowedRoles) {
+                                        const userRole = this.user?.role_name || this.user?.role || 'guest'; 
+                                        // Note: Depending on backend, it might be role_name (Spatie) or role (column). 
+                                        // My seeder used 'role' column as fallback. checking both.
+                                        return allowedRoles.includes(userRole);
+                                    },
+
+                                    // Cash Expense Logic
+                                    showExpenseModal: false,
+                                    expenseForm: { amount: '', note: '' },
+                                    isSubmittingExpense: false,
+
+                                    openExpenseModal() {
+                                        this.expenseForm = { amount: '', note: '' };
+                                        this.showExpenseModal = true;
+                                    },
+
+                                    async submitExpense() {
+                                        if (!this.expenseForm.amount || !this.expenseForm.note) {
+                                            alert('Mohon isi jumlah dan catatan.');
+                                            return;
+                                        }
+
+                                        this.isSubmittingExpense = true;
+                                        try {
+                                            const token = localStorage.getItem('saga_token');
+                                            const response = await fetch('/api/cash-register/expense', {
+                                                method: 'POST',
+                                                headers: { 
+                                                    'Authorization': 'Bearer ' + token,
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify(this.expenseForm)
+                                            });
+
+                                            const data = await response.json();
+                                            if (data.success) {
+                                                alert('Pengeluaran berhasil dicatat!');
+                                                this.showExpenseModal = false;
+                                            } else {
+                                                alert('Gagal: ' + (data.message || 'Terjadi kesalahan'));
+                                            }
+                                        } catch (error) {
+                                                alert('Error sistem: ' + error.message);
+                                        } finally {
+                                            this.isSubmittingExpense = false;
                                         }
                                     }
-                                } catch (error) {
-                                    console.error('Dashboard fetch error:', error);
-                                } finally {
-                                    this.isLoading = false;
-                                }
-                            },
-
-                            async fetchPriceLogs() {
-                                try {
-                                    const token = localStorage.getItem('saga_token');
-                                    const response = await fetch('/api/products/reports/price-logs?limit=5', {
-                                        headers: { 'Authorization': 'Bearer ' + token }
-                                    });
-                                    if (response.ok) {
-                                        const data = await response.json();
-                                        if (data.success) {
-                                            this.priceLogs = data.data;
-                                        }
-                                    }
-                                } catch (error) {
-                                    console.error('Fetch price logs error:', error);
-                                }
-                            },
-
-                            formatCurrency(amount) {
-                                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
-                            },
-
-                            checkRole(allowedRoles) {
-                                const userRole = this.user?.role_name || this.user?.role || 'guest'; 
-                                // Note: Depending on backend, it might be role_name (Spatie) or role (column). 
-                                // My seeder used 'role' column as fallback. checking both.
-                                return allowedRoles.includes(userRole);
-                            },
-
-                            // Cash Expense Logic
-                            showExpenseModal: false,
-                            expenseForm: { amount: '', note: '' },
-                            isSubmittingExpense: false,
-
-                            openExpenseModal() {
-                                this.expenseForm = { amount: '', note: '' };
-                                this.showExpenseModal = true;
-                            },
-
-                            async submitExpense() {
-                                if (!this.expenseForm.amount || !this.expenseForm.note) {
-                                    alert('Mohon isi jumlah dan catatan.');
-                                    return;
-                                }
-
-                                this.isSubmittingExpense = true;
-                                try {
-                                    const token = localStorage.getItem('saga_token');
-                                    const response = await fetch('/api/cash-register/expense', {
-                                        method: 'POST',
-                                        headers: { 
-                                            'Authorization': 'Bearer ' + token,
-                                            'Content-Type': 'application/json'
-                                        },
-                                        body: JSON.stringify(this.expenseForm)
-                                    });
-
-                                    const data = await response.json();
-                                    if (data.success) {
-                                        alert('Pengeluaran berhasil dicatat!');
-                                        this.showExpenseModal = false;
-                                    } else {
-                                        alert('Gagal: ' + (data.message || 'Terjadi kesalahan'));
-                                    }
-                                } catch (error) {
-                                        alert('Error sistem: ' + error.message);
-                                } finally {
-                                    this.isSubmittingExpense = false;
-                                }
-                            }
-                        }">
+                                }">
         <!-- Subscription Expiry Warning Banner -->
         <div x-data="{ 
-                                tenant: JSON.parse(localStorage.getItem('saga_tenant')),
-                                get daysLeft() {
-                                    if (!this.tenant?.subscription?.days_left) return -1;
-                                    return this.tenant.subscription.days_left;
-                                },
-                                get showWarning() {
-                                    return this.daysLeft >= 0 && this.daysLeft <= 7;
-                                },
-                                get warningColor() {
-                                    if (this.daysLeft <= 1) return 'bg-red-500';
-                                    if (this.daysLeft <= 3) return 'bg-orange-500';
-                                    return 'bg-yellow-500';
-                                },
-                                formatDate(dateStr) {
-                                    if (!dateStr) return '-';
-                                    return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-                                }
-                            }" x-show="showWarning" class="mb-4" style="display: none;">
-            <div :class="warningColor" class="rounded-xl p-4 text-white flex items-center justify-between">
+                                        tenant: JSON.parse(localStorage.getItem('saga_tenant') || '{}'),
+                                        get daysLeft() {
+                                            if (!this.tenant?.valid_until) return 999;
+                                            const expiry = new Date(this.tenant.valid_until);
+                                            const now = new Date();
+                                            const diffTime = expiry - now;
+                                            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                        },
+                                        get showWarning() {
+                                            return this.daysLeft >= -5 && this.daysLeft <= 7; // Show if expired recently or expiring soon
+                                        },
+                                        get warningColor() {
+                                            if (this.daysLeft <= 0) return 'bg-red-600';
+                                            if (this.daysLeft <= 3) return 'bg-red-500';
+                                            return 'bg-orange-500';
+                                        },
+                                        formatDate(dateStr) {
+                                            if (!dateStr) return '-';
+                                            return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                                        }
+                                    }" x-show="showWarning" class="mb-4" x-cloak>
+            <div :class="warningColor" class="rounded-xl p-4 text-white flex items-center justify-between shadow-lg">
                 <div class="flex items-center gap-3">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -164,11 +167,10 @@
                         </path>
                     </svg>
                     <div>
-                        <p class="font-semibold"
-                            x-text="daysLeft === 0 ? '⚠️ Langganan Anda berakhir hari ini!' : '⚠️ Langganan akan berakhir dalam ' + daysLeft + ' hari'">
+                        <p class="font-bold text-lg"
+                            x-text="daysLeft <= 0 ? '⚠️ Langganan Telah Berakhir!' : '⚠️ Langganan berakhir dalam ' + daysLeft + ' hari'">
                         </p>
-                        <p class="text-sm opacity-90"
-                            x-text="'Berlaku hingga: ' + formatDate(tenant?.subscription?.subscription_end)">
+                        <p class="text-sm opacity-90" x-text="'Berlaku hingga: ' + formatDate(tenant?.valid_until)">
                         </p>
                     </div>
                 </div>
