@@ -1,23 +1,23 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 1: Environment & Dependency Setup
+> **Current Phase**: Phase 2: Database & Infrastructure Initialization
 > **Milestone**: v0.1 — Development Readiness
 
 ## Must-Haves (from SPEC)
-- [ ] Working Local Environment (`.env`, `Composer`, `NPM`)
+- [x] Working Local Environment (`.env`, `Composer`, `NPM`)
 - [ ] Initialized Database with Migrations and Seeders
 - [ ] Verified Modular Routing & Tenant Scoping
 
 ## Phases
 
 ### Phase 1: Environment & Dependency Setup
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Install all necessary dependencies and configure the environment variables for local development.
 **Tasks**:
-- [ ] Run `composer install`
-- [ ] Run `npm install`
-- [ ] Create `.env` from `.env.example`
-- [ ] Generate App Key
+- [x] Run `composer install`
+- [x] Run `npm install`
+- [x] Create `.env` from `.env.example`
+- [x] Generate App Key
 
 ### Phase 2: Database & Infrastructure Initialization
 **Status**: ⬜ Not Started
