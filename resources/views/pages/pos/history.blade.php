@@ -3,7 +3,7 @@
 @section('title', 'Riwayat Transaksi')
 
 @section('content')
-    <div class="px-6 py-4">
+    <div class="px-6 py-4" x-data="posHistory()">
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Riwayat Transaksi</h1>
@@ -69,43 +69,91 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
-                    <!-- Dummy Data -->
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/[0.3] transition-colors">
-                        <td class="px-6 py-4 font-medium text-brand-600">TRX-00192</td>
-                        <td class="px-6 py-4 text-gray-600 dark:text-gray-400">25 Jan, 14:30</td>
-                        <td class="px-6 py-4 font-medium text-gray-800 dark:text-gray-200">Budi Santoso</td>
-                        <td class="px-6 py-4 font-bold text-gray-800 dark:text-white">Rp 150.000</td>
-                        <td class="px-6 py-4"><span
-                                class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold">Cash</span></td>
-                        <td class="px-6 py-4 text-gray-600 dark:text-gray-400">Siti (Kasir 1)</td>
-                        <td class="px-6 py-4 text-right">
-                            <button class="text-indigo-500 hover:text-indigo-700 mx-1" title="Print Ulang">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
-                                    </path>
-                                </svg>
-                            </button>
-                            <button class="text-blue-500 hover:text-blue-700 mx-1" title="Detail">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
-                                    </path>
-                                </svg>
-                            </button>
-                            <button class="text-amber-500 hover:text-amber-700 mx-1" title="Edit Transaksi">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                                    </path>
-                                </svg>
-                            </button>
-                        </td>
+                    <template x-for="trx in transactions" :key="trx.id">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/[0.3] transition-colors">
+                            <td class="px-6 py-4 font-medium text-brand-600" x-text="trx.invoice_number"></td>
+                            <td class="px-6 py-4 text-gray-600 dark:text-gray-400" x-text="formatDate(trx.date)"></td>
+                            <td class="px-6 py-4 font-medium text-gray-800 dark:text-gray-200" x-text="trx.customer?.name || 'Umum'"></td>
+                            <td class="px-6 py-4 font-bold text-gray-800 dark:text-white" x-text="formatCurrency(trx.grand_total)"></td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold" x-text="trx.payment_method"></span>
+                            </td>
+                            <td class="px-6 py-4 text-gray-600 dark:text-gray-400" x-text="trx.user?.name"></td>
+                            <td class="px-6 py-4 text-right">
+                                <button @click="printReceipt(trx.id)" class="text-indigo-500 hover:text-indigo-700 mx-1" title="Print Ulang">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                                        </path>
+                                    </svg>
+                                </button>
+                                <button class="text-blue-500 hover:text-blue-700 mx-1" title="Detail">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                        </path>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="transactions.length === 0 && !isLoading">
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">Belum ada transaksi</td>
+                    </tr>
+                    <tr x-show="isLoading">
+                        <td colspan="7" class="px-6 py-8 text-center text-brand-600">Memuat data...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+function posHistory() {
+    return {
+        transactions: [],
+        isLoading: false,
+        startDate: '',
+        endDate: '',
+
+        async init() {
+            await this.fetchTransactions();
+        },
+
+        async fetchTransactions() {
+            this.isLoading = true;
+            try {
+                const token = localStorage.getItem('saga_token');
+                let url = '/api/transactions';
+                const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                const result = await response.json();
+                if(result.success) {
+                    this.transactions = result.data.data;
+                }
+            } catch(e) {
+                console.error(e);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        printReceipt(id) {
+            window.open(`/api/transactions/${id}/receipt`, '_blank');
+        },
+
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        },
+
+        formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+        }
+    }
+}
+</script>
+@endpush

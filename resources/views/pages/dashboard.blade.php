@@ -469,6 +469,34 @@
             </div>
         </div>
 
+        <!-- Top Deadstock Widget -->
+        <div x-show="checkRole(['Owner', 'Gudang']) && stats.deadstock && stats.deadstock.length > 0"
+            class="mb-6 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                    Top Deadstock (Stock 0)
+                </h3>
+                <a href="{{ route('inventory.deadstock') }}" class="text-xs text-brand-600 hover:underline">View All →</a>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <template x-for="p in stats.deadstock" :key="p.id">
+                    <div class="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/30">
+                        <p class="text-sm font-bold text-gray-800 dark:text-white truncate" x-text="p.name"></p>
+                        <p class="text-[10px] text-gray-500 font-mono" x-text="p.sku"></p>
+                        <div class="mt-2 flex justify-between items-center">
+                            <span class="text-xs text-red-600 font-bold">Stock: 0</span>
+                            <a :href="'{{ url('/inventory/receiving/goods-in') }}?restock=' + p.id" class="text-[10px] bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">Restock</a>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
         <!-- Sales Chart Placeholder -->
         <div x-show="checkRole(['Owner', 'Manager'])"
             class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">

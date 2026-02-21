@@ -94,6 +94,39 @@
         </button>
         <!-- Dark Mode Toggler -->
 
+        <!-- Low Stock Alert -->
+        <div x-data="{ 
+               lowStockCount: 0,
+               async init() {
+                 await this.fetchLowStock();
+                 setInterval(() => this.fetchLowStock(), 10 * 60 * 1000);
+               },
+               async fetchLowStock() {
+                 const token = localStorage.getItem('saga_token');
+                 if (!token) return;
+                 try {
+                   const res = await fetch('/api/products?low_stock=true&limit=1', { 
+                      headers: { 'Authorization': 'Bearer ' + token } 
+                   });
+                   const data = await res.json();
+                   if (data.success) {
+                     this.lowStockCount = data.data.pagination.total || 0;
+                   }
+                 } catch(e) { console.error('Low stock fetch error:', e); }
+               }
+             }" x-init="init()" class="lg:block hidden">
+          <a href="{{ route('inventory.stock') }}?low_stock=true" 
+            class="hover:text-red-500 relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-red-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-red-900/20"
+            title="Low Stock Items">
+            <span x-show="lowStockCount > 0"
+              class="absolute -top-1 -right-1 z-1 h-5 w-5 flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-bold animate-pulse"
+              x-text="lowStockCount"></span>
+            <svg class="fill-current" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L1 21h22L12 2zm0 3.45l8.28 14.55H3.72L12 5.45zM11 16h2v2h-2v-2zm0-6h2v4h-2v-4z" fill="currentColor"/>
+            </svg>
+          </a>
+        </div>
+
         <!-- Notification Menu Area -->
         <div class="relative" x-data="{ 
                dropdownOpen: false, 

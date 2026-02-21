@@ -14,23 +14,24 @@ class SetupTestingTenantsSeeder extends Seeder
     {
         // 1. Retail Test Setup
         $retailTenant = Tenant::firstOrCreate(
-            ['domain' => 'testretail'],
-            [
-                'name' => 'Toko Retail Jaya',
-                'owner_name' => 'Pak Retail',
-                'business_type' => 'retail',
-                'subscription_plan' => 'pro',
-                'is_active' => true
-            ]
+        ['domain' => 'testretail'],
+        [
+            'name' => 'Toko Retail Jaya',
+            'code' => 'T001',
+            'owner_name' => 'Pak Retail',
+            'business_type' => 'retail',
+            'subscription_plan' => 'pro',
+            'is_active' => true
+        ]
         );
 
         $retailUser = User::firstOrCreate(
-            ['email' => 'retail@sagatoko.com'],
-            [
-                'name' => 'Owner Retail',
-                'password' => Hash::make('12345678'),
-                'tenant_id' => $retailTenant->id,
-            ]
+        ['email' => 'retail@sagatoko.com'],
+        [
+            'name' => 'Owner Retail',
+            'password' => Hash::make('12345678'),
+            'tenant_id' => $retailTenant->id,
+        ]
         );
         // Ensure Roles Exist (Fix for 'RoleDoesNotExist' if logic relies on Events that might not fire)
         $guardName = 'web';
@@ -45,23 +46,24 @@ class SetupTestingTenantsSeeder extends Seeder
 
         // 2. Barber Test Setup
         $barberTenant = Tenant::firstOrCreate(
-            ['domain' => 'testbarber'],
-            [
-                'name' => 'Saga Barbershop',
-                'owner_name' => 'Bro Barber',
-                'business_type' => 'barber',
-                'subscription_plan' => 'basic',
-                'is_active' => true
-            ]
+        ['domain' => 'testbarber'],
+        [
+            'name' => 'Saga Barbershop',
+            'code' => 'T002',
+            'owner_name' => 'Bro Barber',
+            'business_type' => 'barber',
+            'subscription_plan' => 'basic',
+            'is_active' => true
+        ]
         );
 
         $barberUser = User::firstOrCreate(
-            ['email' => 'barber@sagatoko.com'],
-            [
-                'name' => 'Owner Barber',
-                'password' => Hash::make('12345678'),
-                'tenant_id' => $barberTenant->id,
-            ]
+        ['email' => 'barber@sagatoko.com'],
+        [
+            'name' => 'Owner Barber',
+            'password' => Hash::make('12345678'),
+            'tenant_id' => $barberTenant->id,
+        ]
         );
         $barberUser->assignRole($roleOwner);
         // Note: Spatie roles are global by default in this table setup, but permissions differ.

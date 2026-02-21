@@ -50,8 +50,8 @@
                         <h4 class="font-medium text-gray-800 dark:text-white text-sm line-clamp-2 min-h-[2.5em]" x-text="product.name"></h4>
                         <div class="flex justify-between items-end mt-2">
                             <div class="flex flex-col">
-                                <span class="text-xs text-gray-500 dark:text-gray-400" x-text="product.unit_name"></span>
-                                <span class="font-bold text-brand-600 dark:text-brand-400 text-sm" x-text="formatCurrency(product.price)"></span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400" x-text="product.units?.[0]?.name"></span>
+                                <span class="font-bold text-brand-600 dark:text-brand-400 text-sm" x-text="formatCurrency(product.units?.[0]?.price)"></span>
                             </div>
                             <div class="text-xs font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" 
                                 x-text="'Stok: ' + formatNumber(product.stock)"></div>
@@ -92,6 +92,17 @@
                     <div class="flex-1 min-w-0">
                         <h5 class="text-sm font-medium text-gray-800 dark:text-white truncate" x-text="item.name"></h5>
                         <div class="flex items-center gap-2 mt-1">
+                            <template x-if="item.units.length > 1">
+                                <select @change="changeUnit(index, $event.target.value)" 
+                                    class="text-[10px] py-0.5 px-1 border border-gray-200 rounded bg-white dark:bg-gray-800 dark:border-gray-600">
+                                    <template x-for="u in item.units" :key="u.id">
+                                        <option :value="u.id" :selected="u.id === item.unitId" x-text="u.name"></option>
+                                    </template>
+                                </select>
+                            </template>
+                            <template x-if="item.units.length === 1">
+                                <span class="text-[10px] text-gray-500" x-text="item.unitName"></span>
+                            </template>
                             <span class="text-xs text-brand-600 font-medium" x-text="formatCurrency(item.price)"></span>
                             <span class="text-xs text-gray-400" x-text="'x ' + item.qty"></span>
                         </div>
@@ -158,21 +169,27 @@ function posSystem() {
         },
 
         async fetchCategories() {
-            // Mock or API
-            // this.categories = await (await fetch('/api/products/categories')).json();
-            // Fallback mock
-            this.categories = [
-                { id: 1, name: 'Makanan' }, { id: 2, name: 'Minuman' }, { id: 3, name: 'Sembako' }
-            ];
+            try {
+                const token = localStorage.getItem('saga_token');
+                const response = await fetch('/api/products/categories', { 
+                    headers: { 'Authorization': 'Bearer ' + token } 
+                });
+                const result = await response.json();
+                if(result.success) {
+                    this.categories = result.data;
+                }
+            } catch(e) {
+                console.error('Error fetching categories:', e);
+            }
         },
 
         async fetchProducts() {
             this.isLoading = true;
             try {
                 // Simulate API call or real API
-                const token = localStorage.getItem('saga_token');
                 let url = '/api/products?limit=50';
                 if(this.searchQuery) url += '&search=' + this.searchQuery;
+                if(this.selectedCategory) url += '&category_id=' + this.selectedCategory;
                 
                 const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
                 const data = await response.json();
@@ -180,10 +197,14 @@ function posSystem() {
                     this.products = data.data.products.map(p => ({
                         id: p.id,
                         name: p.name,
-                        price: parseFloat(p.units?.[0]?.sell_price || 0), // Simplification: pick first unit
                         stock: parseFloat(p.stock),
                         image_url: p.image_url,
-                        unit_name: p.units?.[0]?.unit?.name || 'Pcs'
+                        units: p.units.map(u => ({
+                            id: u.unit_id,
+                            name: u.unit?.name || 'Unit',
+                            price: parseFloat(u.sell_price),
+                            conversion_qty: parseFloat(u.conversion_qty)
+                        }))
                     }));
                 }
             } catch(e) {
@@ -194,11 +215,21 @@ function posSystem() {
         },
 
         addToCart(product) {
-            const index = this.cart.findIndex(i => i.id === product.id);
-            if(index !== -1) {
-                this.cart[index].qty++;
+            const unit = product.units[0]; // Default to first unit
+            const cartIndex = this.cart.findIndex(i => i.id === product.id && i.unitId === unit.id);
+            
+            if(cartIndex !== -1) {
+                this.cart[cartIndex].qty++;
             } else {
-                this.cart.push({ ...product, qty: 1 });
+                this.cart.push({ 
+                    id: product.id,
+                    name: product.name,
+                    qty: 1,
+                    unitId: unit.id,
+                    unitName: unit.name,
+                    price: unit.price,
+                    units: product.units // Keep all units for switching later
+                });
             }
         },
 
@@ -214,6 +245,16 @@ function posSystem() {
             this.cart.splice(index, 1);
         },
 
+        changeUnit(index, unitId) {
+            const item = this.cart[index];
+            const unit = item.units.find(u => u.id == unitId);
+            if(unit) {
+                item.unitId = unit.id;
+                item.unitName = unit.name;
+                item.price = unit.price;
+            }
+        },
+
         clearCart() {
             if(this.cart.length > 0) {
                 Swal.fire({
@@ -222,21 +263,60 @@ function posSystem() {
             }
         },
 
-        processCheckout() {
-            Swal.fire({
-                title: 'Checkout',
-                text: 'Total: ' + this.formatCurrency(this.total),
+        async processCheckout() {
+            const result = await Swal.fire({
+                title: 'Konfirmasi Pembayaran',
+                text: 'Total Tagihan: ' + this.formatCurrency(this.total),
                 icon: 'info',
                 showCancelButton: true,
-                confirmButtonText: 'Confirm Payment',
-                confirmButtonColor: '#4F46E5' // Indigo/Brand
-            }).then(result => {
-                if(result.isConfirmed) {
-                    // Call API to create transaction
-                    Swal.fire('Success!', 'Transaction completed.', 'success');
-                    this.cart = [];
-                }
+                confirmButtonText: 'Bayar Sekarang',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#4F46E5'
             });
+
+            if(result.isConfirmed) {
+                this.isLoading = true;
+                try {
+                    const token = localStorage.getItem('saga_token');
+                    const response = await fetch('/api/transactions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({
+                            cart_items: this.cart,
+                            paid_amount: this.total, // For now assuming exact pay, can add change logic later
+                            payment_method: 'Cash',
+                        })
+                    });
+
+                    const data = await response.json();
+                    if(data.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: 'Transaksi selesai. No Invoice: ' + data.data.invoice_number,
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonText: 'Cetak Struk',
+                            cancelButtonText: 'Selesai',
+                        }).then((choice) => {
+                            if(choice.isConfirmed) {
+                                window.open(`/api/transactions/${data.data.id}/receipt`, '_blank');
+                            }
+                        });
+                        this.cart = [];
+                        await this.fetchProducts(); // Refresh stock
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch(e) {
+                    console.error(e);
+                    Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+                } finally {
+                    this.isLoading = false;
+                }
+            }
         },
 
         formatCurrency(amount) {

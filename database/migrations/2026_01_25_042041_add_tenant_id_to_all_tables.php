@@ -21,9 +21,11 @@ return new class extends Migration {
         ];
 
         foreach ($tables as $tableName) {
-            Schema::table($tableName, function (Blueprint $table) {
-                $table->foreignId('tenant_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
-            });
+            if (!Schema::hasColumn($tableName, 'tenant_id')) {
+                Schema::table($tableName, function (Blueprint $table) {
+                    $table->foreignId('tenant_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
+                });
+            }
         }
     }
 

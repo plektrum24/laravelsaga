@@ -16,17 +16,22 @@ Files are organized into `app/Modules`. Each module (e.g., `Retail`, `Barber`) c
 - Config
 This suggests a decoupled architecture where features can be developed or enabled per-module.
 
-### 2. Multi-Tenancy
-The system uses a single-database multi-tenancy approach, as evidenced by:
-- `tenants` table in migrations.
-- `tenant_id` added to users and all critical tables.
-- Global scopes or middleware likely handle the filtering of data by `tenant_id`.
+### 2. Multi-Tenancy (Hybrid Isolation)
+The system uses a flexible multi-tenancy approach:
+- **Database Context**: `TenantMiddleware` dynamically switches the `tenant` connection to a specific database per tenant based on headers or user context.
+- **Logical Scoping**: A `MultiTenantable` trait (Global Scope) is provided to filter by `tenant_id` within shared databases.
+- **Current State**: Multiple tenants currently point to a single shared database (`tailadmin_laravel`).
+- **Isolation Scope**: `MultiTenantable` is currently only applied to `TransactionItem`. Other models require manual scoping.
 
-### 3. Rich UI Components
-Extensive use of Blade components in `app/View/Components`, categorized into UI, Form, Tables, etc. This indicates a highly customized and reusable design system, likely using Tailwind CSS.
+### 3. Modular Capability Map
+Modules in `app/Modules` provide business-specific workflows:
+- **Retail**: Specialized POS and Inventory management tracker. Uses modular models for branch-specific data.
+- **Barber**: A configuration-first shell currently focused on UI/Menu structure, designed for future appointment/queue logic.
 
-### 4. API First & Admin UI
-Separate controllers for Admin, API, and API/Admin indicates both a web-based dashboard and API integration (likely for mobile apps or external integrations).
+### 4. Shared Infrastructure
+- **UI Components**: High-fidelity Blade components in `resources/views/components`.
+- **RBAC**: Spatie Permission handles roles (Owner, Manager, Staff, etc.) which are evaluated in the `MenuController`.
+
 
 ## Component Map
 

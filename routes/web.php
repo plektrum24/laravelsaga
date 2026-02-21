@@ -2,11 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
+/* |-------------------------------------------------------------------------- | Web Routes |-------------------------------------------------------------------------- */
 
 // Dashboard
 Route::get('/', function () {
@@ -25,77 +21,96 @@ Route::get('/signin', function () {
     return view('pages.auth.signin');
 })->name('login'); // Named 'login' for Laravel auth redirect
 
-// Super Admin Routes (use 'web' for testing, should add auth later)
+// Super Admin Routes
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', function () {
-        return redirect()->route('admin.dashboard');
+            return redirect()->route('admin.dashboard');
+        }
+        );
+
+        Route::get('/dashboard', function () {
+            return view('pages.admin.dashboard');
+        }
+        )->name('dashboard');
+
+        Route::get('/tenants', [\App\Http\Controllers\Admin\TenantController::class , 'index'])->name('tenants.index');
+        Route::get('/users', [\App\Http\Controllers\Admin\UserController::class , 'index'])->name('users.index');
+        Route::get('/reports', [\App\Http\Controllers\Admin\ReportsController::class , 'index'])->name('reports.index');
+        Route::get('/license', [\App\Http\Controllers\Admin\LicenseController::class , 'index'])->name('license.index');
+        Route::post('/license/generate', [\App\Http\Controllers\Admin\LicenseController::class , 'generate'])->name('license.generate');
     });
-
-    Route::get('/dashboard', function () {
-        return view('pages.admin.dashboard');
-    })->name('dashboard');
-
-    Route::get('/tenants', [\App\Http\Controllers\Admin\TenantController::class, 'index'])->name('tenants.index');
-    Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
-    Route::get('/reports', [\App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('reports.index');
-    Route::get('/license', [\App\Http\Controllers\Admin\LicenseController::class, 'index'])->name('license.index');
-    Route::post('/license/generate', [\App\Http\Controllers\Admin\LicenseController::class, 'generate'])->name('license.generate');
-});
 
 // Inventory Routes
 Route::prefix('inventory')->name('inventory.')->group(function () {
     Route::get('/index', function () {
-        return view('pages.inventory.index');
-    })->name('index');
+            return view('pages.inventory.index');
+        }
+        )->name('index');
 
-    Route::get('/categories', function () {
-        return view('pages.inventory.categories');
-    })->name('categories');
+        Route::get('/categories', function () {
+            return view('pages.inventory.categories');
+        }
+        )->name('categories');
 
-    Route::get('/stock', function () {
-        return view('pages.inventory.stock-management');
-    })->name('stock');
+        Route::get('/stock', function () {
+            return view('pages.inventory.stock-management');
+        }
+        )->name('stock');
 
-    Route::get('/receiving', function () {
-        return view('pages.inventory.receiving.index');
-    })->name('receiving.index');
+        Route::get('/movements', function () {
+            return view('pages.inventory.movements');
+        }
+        )->name('movements');
 
-    Route::get('/receiving/create', function () {
-        return view('pages.inventory.receiving.create');
-    })->name('receiving.create');
+        Route::get('/receiving', function () {
+            return view('pages.inventory.receiving.index');
+        }
+        )->name('receiving.index');
 
-    Route::get('/suppliers', function () {
-        return view('pages.inventory.suppliers');
-    })->name('suppliers');
+        Route::get('/receiving/create', function () {
+            return view('pages.inventory.receiving.create');
+        }
+        )->name('receiving.create');
 
-    Route::get('/transfer', function () {
-        return view('pages.inventory.transfer');
-    })->name('transfer');
+        Route::get('/suppliers', function () {
+            return view('pages.inventory.suppliers');
+        }
+        )->name('suppliers');
 
-    Route::get('/deadstock', function () {
-        return view('pages.inventory.deadstock');
-    })->name('deadstock');
-});
+        Route::get('/transfer', function () {
+            return view('pages.inventory.transfer');
+        }
+        )->name('transfer');
+
+        Route::get('/deadstock', function () {
+            return view('pages.inventory.deadstock');
+        }
+        )->name('deadstock');
+    });
 
 // Finance
 Route::prefix('finance')->name('finance.')->group(function () {
     Route::get('/debts', function () {
-        return view('pages.finance.debts');
-    })->name('debts');
-    Route::get('/receivables', function () {
-        return view('pages.finance.receivables');
-    })->name('receivables');
-});
+            return view('pages.finance.debts');
+        }
+        )->name('debts');
+        Route::get('/receivables', function () {
+            return view('pages.finance.receivables');
+        }
+        )->name('receivables');
+    });
 
 // Sales
 Route::prefix('sales')->name('sales.')->group(function () {
     Route::get('/', function () {
-        return view('pages.sales.index');
-    })->name('index');
-    Route::get('/create', function () {
-        return view('pages.sales.create');
-    })->name('create');
-});
+            return view('pages.sales.index');
+        }
+        )->name('index');
+        Route::get('/create', function () {
+            return view('pages.sales.create');
+        }
+        )->name('create');
+    });
 
 // POS
 Route::get('/pos', function () {
@@ -109,9 +124,10 @@ Route::get('/pos/history', function () {
 // Customers
 Route::prefix('customers')->name('customers.')->group(function () {
     Route::get('/', function () {
-        return view('pages.customers.index');
-    })->name('index');
-});
+            return view('pages.customers.index');
+        }
+        )->name('index');
+    });
 
 // Reports
 Route::get('/reports', function () {
@@ -129,8 +145,16 @@ Route::get('/settings', function () {
 
 // User Management
 Route::get('/users', function () {
-    return view('pages.users.index');
+    return view('pages.employees.index');
 })->name('users.index');
+
+Route::get('/team/manage', function () {
+    return view('pages.team.manage');
+})->name('team.manage');
+
+Route::get('/via-management', function () {
+    return view('pages.via.index');
+})->name('via.management');
 
 // Payroll
 Route::get('/payroll', function () {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
@@ -53,22 +54,36 @@ class TransactionController extends Controller
                 // Ideally: Find distinct price based on unit.
 
                 $price = $item['price'];
+                $unitId = $item['unitId'] ?? null;
                 $lineTotal = $price * $qty;
                 $subtotal += $lineTotal;
+
+                // Find conversion factor and COGS
+                $conversionQty = 1;
+                $cogs = $product->buy_price; // Default to base product buy price
+
+                if ($unitId) {
+                    $productUnit = $product->units()->where('unit_id', $unitId)->first();
+                    if ($productUnit) {
+                        $conversionQty = $productUnit->conversion_qty;
+                        $cogs = $productUnit->buy_price;
+                    }
+                }
 
                 $itemsToInsert[] = [
                     'product_id' => $product->id,
                     'qty' => $qty,
                     'price' => $price,
                     'subtotal' => $lineTotal,
-                    'cogs' => $product->buy_price, // Approx COGS
-                    'unit_id' => null, // TODO: Enhance with specific unit
+                    'cogs' => $cogs,
+                    'unit_id' => $unitId,
+                    'conversion_qty' => $conversionQty,
                 ];
 
                 // Decrement Stock
                 if ($product->track_stock) {
-                    $product->decrement('stock', $qty);
-                    // Log movement could be here or observer
+                    $stockToDeduct = $qty * $conversionQty;
+                    $product->decrement('stock', $stockToDeduct);
                 }
             }
 
@@ -91,6 +106,23 @@ class TransactionController extends Controller
 
             foreach ($itemsToInsert as $item) {
                 $transaction->items()->create($item);
+
+                // Record Inventory Movement
+                $product = Product::find($item['product_id']);
+                if ($product && $product->track_stock) {
+                    // Note: Stock was already decremented in the first loop
+                    InventoryMovement::create([
+                        'tenant_id' => $transaction->tenant_id,
+                        'product_id' => $product->id,
+                        'branch_id' => $transaction->branch_id,
+                        'user_id' => $transaction->user_id,
+                        'reference_number' => $transaction->invoice_number,
+                        'type' => 'out',
+                        'qty' => $item['qty'] * ($item['conversion_qty'] ?? 1), // Need to ensure conversion_qty is available
+                        'current_stock' => $product->stock,
+                        'notes' => 'Sales: ' . $transaction->invoice_number,
+                    ]);
+                }
             }
 
             DB::connection('tenant')->commit();
@@ -101,7 +133,8 @@ class TransactionController extends Controller
                 'data' => $transaction
             ]);
 
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }

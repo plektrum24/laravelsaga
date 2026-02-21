@@ -9,31 +9,98 @@
                             dateTo: new Date().toISOString().split('T')[0],
                             isLoading: false,
 
-                            // Mock Data for UI Visualization
-                            stats: {
-                                sales: { total: 15450000, count: 124, profit: 4500000 },
-                                stock: { total_value: 85400000, low_stock: 5, out_stock: 2 },
-                                purchase: { total: 8500000, count: 12 },
-                                profit_details: [
-                                    { name: 'Kopi Kapal Api Mix', qty: 1240, revenue: 3100000, cost: 2480000, profit: 620000 },
-                                    { name: 'Indomie Goreng', qty: 950, revenue: 2850000, cost: 2375000, profit: 475000 },
-                                    { name: 'Aqua 600ml', qty: 500, revenue: 1500000, cost: 1000000, profit: 500000 },
-                                    { name: 'Roti Tawar Sari Roti', qty: 200, revenue: 3000000, cost: 2400000, profit: 600000 },
-                                    { name: 'Teh Pucuk Harum', qty: 350, revenue: 1225000, cost: 875000, profit: 350000 }
-                                ]
-                            },
+                            // Real Data from API
+                            salesData: { chartData: [], totalRevenue: 0, totalProfit: 0, totalTransactions: 0 },
+                            topProducts: [],
+                            categories: [],
+                            salesChart: null,
 
                             formatCurrency(amount) {
                                 return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
                             },
 
-                            init() {
-                                // Watch for tab changes to update URL without reload
-                                this.$watch('activeTab', value => {
+                            async init() {
+                                await this.fetchAllData();
+                                
+                                this.$watch('activeTab', async (value) => {
                                     const url = new URL(window.location);
                                     url.searchParams.set('tab', value);
                                     window.history.pushState({}, '', url);
+                                    
+                                    if(value === 'sales') {
+                                        this.$nextTick(() => this.renderSalesChart());
+                                    }
                                 });
+                            },
+
+                            async fetchAllData() {
+                                this.isLoading = true;
+                                try {
+                                    const token = localStorage.getItem('saga_token');
+                                    const headers = { 'Authorization': 'Bearer ' + token };
+                                    
+                                    // Fetch Sales Overview
+                                    const resSales = await fetch(`/api/reports/sales-overview?days=30`, { headers });
+                                    const dataSales = await resSales.json();
+                                    if(dataSales.success) this.salesData = dataSales.data;
+
+                                    // Fetch Top Products
+                                    const resTop = await fetch(`/api/reports/top-products?limit=5`, { headers });
+                                    const dataTop = await resTop.json();
+                                    if(dataTop.success) this.topProducts = dataTop.data;
+
+                                    // Fetch Category Performance
+                                    const resCat = await fetch(`/api/reports/category-performance`, { headers });
+                                    const dataCat = await resCat.json();
+                                    if(dataCat.success) this.categories = dataCat.data;
+
+                                    this.$nextTick(() => {
+                                        if(this.activeTab === 'sales') this.renderSalesChart();
+                                    });
+                                } catch(e) {
+                                    console.error('Error fetching report data:', e);
+                                } finally {
+                                    this.isLoading = false;
+                                }
+                            },
+
+                            renderSalesChart() {
+                                const chartEl = document.querySelector('#sales-chart-container');
+                                if(!chartEl || this.salesData.chartData.length === 0) return;
+
+                                if(this.salesChart) this.salesChart.destroy();
+
+                                const options = {
+                                    series: [{
+                                        name: 'Revenue',
+                                        data: this.salesData.chartData.map(d => parseFloat(d.total_revenue))
+                                    }],
+                                    chart: {
+                                        type: 'area',
+                                        height: 300,
+                                        toolbar: { show: false },
+                                        zoom: { enabled: false }
+                                    },
+                                    colors: ['#4F46E5'],
+                                    dataLabels: { enabled: false },
+                                    stroke: { curve: 'smooth', width: 3 },
+                                    xaxis: {
+                                        categories: this.salesData.chartData.map(d => d.day),
+                                        labels: { rotate: -45, style: { fontSize: '10px' } }
+                                    },
+                                    yaxis: {
+                                        labels: {
+                                            formatter: (val) => 'Rp ' + (val/1000000).toFixed(1) + 'M'
+                                        }
+                                    },
+                                    fill: {
+                                        type: 'gradient',
+                                        gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.1 }
+                                    }
+                                };
+
+                                this.salesChart = new ApexCharts(chartEl, options);
+                                this.salesChart.render();
                             }
                         }">
 
@@ -172,26 +239,26 @@
                     <div
                         class="bg-gradient-to-br from-brand-500 to-brand-600 rounded-2xl p-6 text-white shadow-lg shadow-brand-500/20">
                         <p class="text-brand-100 text-sm font-medium mb-1">Total Penjualan</p>
-                        <h3 class="text-3xl font-bold" x-text="formatCurrency(stats.sales.total)">Rp 0</h3>
+                        <h3 class="text-3xl font-bold" x-text="formatCurrency(salesData.totalRevenue)">Rp 0</h3>
                         <div class="mt-4 flex items-center gap-2 text-xs bg-white/20 w-fit px-2 py-1 rounded-lg">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                             </svg>
-                            <span>+12.5% dari bulan lalu</span>
+                            <span x-text="'Periode ' + (dateFrom || '-') + ' s/d ' + (dateTo || '-')"></span>
                         </div>
                     </div>
                     <div
                         class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
                         <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Transaksi</p>
-                        <h3 class="text-3xl font-bold text-gray-800 dark:text-white" x-text="stats.sales.count">0</h3>
-                        <p class="text-xs text-green-500 mt-2 font-medium">+5 transaksi hari ini</p>
+                        <h3 class="text-3xl font-bold text-gray-800 dark:text-white" x-text="salesData.totalTransactions">0</h3>
+                        <p class="text-xs text-brand-500 mt-2 font-medium">Transaksi Selesai</p>
                     </div>
                     <div
                         class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
                         <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Rata-rata Keranjang</p>
                         <h3 class="text-3xl font-bold text-gray-800 dark:text-white"
-                            x-text="formatCurrency(stats.sales.total / stats.sales.count)">Rp 0</h3>
+                            x-text="salesData.totalTransactions > 0 ? formatCurrency(salesData.totalRevenue / salesData.totalTransactions) : 'Rp 0'">Rp 0</h3>
                         <p class="text-xs text-gray-400 mt-2">Per transaksi</p>
                     </div>
                 </div>
@@ -200,9 +267,11 @@
                 <div
                     class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
                     <h3 class="font-bold text-gray-800 dark:text-white mb-6">Grafik Penjualan</h3>
-                    <div
+                    <div id="sales-chart-container"
                         class="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-600">
-                        <span class="text-gray-400 text-sm">Chart Visualization Area (ApexCharts)</span>
+                        <template x-if="salesData.chartData.length === 0">
+                            <span class="text-gray-400 text-sm">Tidak ada data untuk periode ini</span>
+                        </template>
                     </div>
                 </div>
 
@@ -295,8 +364,8 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">Stok Menipis</p>
-                            <p class="text-xl font-bold text-yellow-600" x-text="stats.stock.low_stock + ' Item'">0 Item</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">Terdapat</p>
+                            <p class="text-xl font-bold text-yellow-600" x-text="categories.length + ' Kategori'"></p>
                         </div>
                     </div>
                 </div>
@@ -305,34 +374,25 @@
                     class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
                     <h3 class="font-bold text-gray-800 dark:text-white mb-4">Top 5 Pergerakan Stok (Fast Moving)</h3>
                     <div class="space-y-4">
-                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                            <div class="flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 flex items-center justify-center bg-brand-100 text-brand-600 rounded-lg font-bold text-sm">1</span>
-                                <div>
-                                    <p class="font-medium text-gray-800 dark:text-white">Kopi Kapal Api Mix</p>
-                                    <p class="text-xs text-gray-500">Minuman</p>
+                        <template x-for="(product, index) in topProducts" :key="product.id">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                <div class="flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 flex items-center justify-center bg-brand-100 text-brand-600 rounded-lg font-bold text-sm" x-text="index + 1"></span>
+                                    <div>
+                                        <p class="font-medium text-gray-800 dark:text-white" x-text="product.product?.name"></p>
+                                        <p class="text-xs text-gray-500" x-text="formatCurrency(product.total_revenue)"></p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-gray-800 dark:text-white" x-text="product.total_qty + ' Unit'"></p>
+                                    <p class="text-xs text-green-500">Terjual</p>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <p class="font-bold text-gray-800 dark:text-white">1,240 Pcs</p>
-                                <p class="text-xs text-green-500">Terjual</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
-                            <div class="flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 flex items-center justify-center bg-brand-100 text-brand-600 rounded-lg font-bold text-sm">2</span>
-                                <div>
-                                    <p class="font-medium text-gray-800 dark:text-white">Indomie Goreng</p>
-                                    <p class="text-xs text-gray-500">Makanan</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-gray-800 dark:text-white">950 Pcs</p>
-                                <p class="text-xs text-green-500">Terjual</p>
-                            </div>
-                        </div>
+                        </template>
+                        <template x-if="topProducts.length === 0">
+                            <p class="text-center text-gray-500 py-4">Belum ada data produk terlaris.</p>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -386,33 +446,27 @@
                                 class="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
                                 <span class="text-gray-600 dark:text-gray-400">Total Penjualan (Revenue)</span>
                                 <span class="font-bold text-gray-800 dark:text-white"
-                                    x-text="formatCurrency(stats.sales.total)">Rp 0</span>
+                                    x-text="formatCurrency(salesData.totalRevenue)">Rp 0</span>
                             </div>
                             <div
                                 class="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
-                                <span class="text-gray-600 dark:text-gray-400">Harga Pokok Penjualan (HPP)</span>
-                                <span class="font-bold text-red-500">- Rp 10.950.000</span>
-                            </div>
-                            <div
-                                class="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
-                                <span class="text-gray-600 dark:text-gray-400">Biaya Operasional</span>
-                                <span class="font-bold text-red-500">- Rp 500.000</span>
+                                <span class="text-gray-600 dark:text-gray-400">Total Modal (COGS)</span>
+                                <span class="font-bold text-red-500" x-text="'- ' + formatCurrency(salesData.totalRevenue - salesData.totalProfit)"></span>
                             </div>
                             <div class="flex justify-between items-center pt-2">
-                                <span class="text-lg font-bold text-gray-800 dark:text-white">Laba Bersih</span>
+                                <span class="text-lg font-bold text-gray-800 dark:text-white">Estimasi Laba Kotor</span>
                                 <span class="text-xl font-bold text-green-600"
-                                    x-text="formatCurrency(stats.sales.profit)">Rp 0</span>
+                                    x-text="formatCurrency(salesData.totalProfit)">Rp 0</span>
                             </div>
                         </div>
                     </div>
 
-                    <div
-                        class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white flex flex-col justify-center items-center text-center">
-                        <p class="text-indigo-100 mb-2">Margin Keuntungan</p>
-                        <h3 class="text-5xl font-bold mb-4">29.1%</h3>
-                        <p class="text-sm opacity-80">Margin keuntungan sehat. Pertahankan efisiensi HPP untuk meningkatkan
-                            margin.</p>
-                    </div>
+                        <div
+                            class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white flex flex-col justify-center items-center text-center">
+                            <p class="text-indigo-100 mb-2">Margin Keuntungan</p>
+                            <h3 class="text-5xl font-bold mb-4" x-text="salesData.totalRevenue > 0 ? ((salesData.totalProfit / salesData.totalRevenue) * 100).toFixed(1) + '%' : '0%'"></h3>
+                            <p class="text-sm opacity-80" x-text="salesData.totalProfit > 0 ? 'Margin keuntungan kotor berdasarkan data transaksi.' : 'Belum ada data profit.'"></p>
+                        </div>
                 </div>
 
                 <!-- Detailed Profit Table -->
@@ -433,18 +487,20 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                                <template x-for="item in stats.profit_details" :key="item.name">
+                                <template x-for="cat in categories" :key="cat.name">
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                        <td class="px-6 py-4 font-medium text-gray-800 dark:text-white" x-text="item.name">
+                                        <td class="px-6 py-4 font-medium text-gray-800 dark:text-white" x-text="cat.name">
                                         </td>
+                                        <td class="px-6 py-4 text-right text-gray-600 dark:text-gray-300" x-text="'-'"></td>
                                         <td class="px-6 py-4 text-right text-gray-600 dark:text-gray-300"
-                                            x-text="item.qty + ' pcs'"></td>
-                                        <td class="px-6 py-4 text-right text-gray-600 dark:text-gray-300"
-                                            x-text="formatCurrency(item.revenue)"></td>
-                                        <td class="px-6 py-4 text-right text-gray-600 dark:text-gray-300"
-                                            x-text="formatCurrency(item.cost)"></td>
-                                        <td class="px-6 py-4 text-right font-bold text-green-600"
-                                            x-text="formatCurrency(item.profit)"></td>
+                                            x-text="formatCurrency(cat.total_revenue)"></td>
+                                        <td class="px-6 py-4 text-right text-gray-600 dark:text-gray-300" x-text="'-'"></td>
+                                        <td class="px-6 py-4 text-right font-bold text-green-600" x-text="formatCurrency(cat.total_revenue)"></td>
+                                    </tr>
+                                </template>
+                                <template x-if="categories.length === 0">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">Tidak ada data performa kategori.</td>
                                     </tr>
                                 </template>
                             </tbody>
