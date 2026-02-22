@@ -201,14 +201,24 @@ Route::prefix('sales')->name('sales.')->group(function () {
         )->name('create');
     });
 
-// POS
-Route::get('/pos', function () {
-    return view('pages.pos.index');
-})->name('pos.index');
-
-Route::get('/pos/history', function () {
-    return view('pages.pos.history');
-})->name('pos.history');
+// POS Routes - Cashier System
+Route::prefix('pos')->name('pos.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.pos.index');
+    })->name('index');
+    
+    Route::get('/history', function () {
+        return view('pages.pos.history');
+    })->name('history');
+    
+    Route::get('/cashier', function () {
+        return redirect()->route('pos.index');
+    })->name('cashier');
+    
+    Route::get('/transactions', function () {
+        return redirect()->route('pos.history');
+    })->name('transactions');
+});
 
 // Customers
 Route::prefix('customers')->name('customers.')->group(function () {
