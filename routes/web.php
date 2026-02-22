@@ -21,7 +21,7 @@ Route::get('/signin', function () {
     return view('pages.auth.signin');
 })->name('login'); // Named 'login' for Laravel auth redirect
 
-// Super Admin Routes
+// Super Admin Routes (Legacy)
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', function () {
             return redirect()->route('admin.dashboard');
@@ -40,6 +40,60 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/license/generate', [\App\Http\Controllers\Admin\LicenseController::class , 'generate'])->name('license.generate');
     });
 
+// Super Admin Routes - Phase 22 SaaS Management
+Route::prefix('super-admin')->name('super-admin.')->middleware(['auth:sanctum', 'super_admin'])->group(function () {
+    Route::get('/dashboard', function () {
+        return view('pages.super-admin.dashboard');
+    })->name('dashboard');
+
+    Route::get('/tenants', function () {
+        return view('pages.super-admin.tenants.index');
+    })->name('tenants.index');
+
+    Route::get('/tenants/{tenant}', function ($id) {
+        return view('pages.super-admin.tenants.show', ['tenantId' => $id]);
+    })->name('tenants.show');
+
+    Route::get('/plans', function () {
+        return view('pages.super-admin.plans.index');
+    })->name('plans.index');
+
+    Route::get('/invoices', function () {
+        return view('pages.super-admin.invoices.index');
+    })->name('invoices.index');
+
+    Route::get('/tickets', function () {
+        return view('pages.super-admin.tickets.index');
+    })->name('tickets.index');
+});
+
+// Tenant Portal Routes - Phase 22
+Route::prefix('tenant-portal')->name('tenant-portal.')->middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::get('/', function () {
+        return view('pages.tenant-portal.dashboard');
+    })->name('dashboard');
+
+    Route::get('/dashboard', function () {
+        return view('pages.tenant-portal.dashboard');
+    })->name('home');
+
+    Route::get('/subscription', function () {
+        return view('pages.tenant-portal.subscription');
+    })->name('subscription');
+
+    Route::get('/invoices', function () {
+        return view('pages.tenant-portal.invoices');
+    })->name('invoices');
+
+    Route::get('/tickets', function () {
+        return view('pages.tenant-portal.tickets');
+    })->name('tickets');
+
+    Route::get('/usage', function () {
+        return view('pages.tenant-portal.usage');
+    })->name('usage');
+});
+
 // Inventory Routes
 Route::prefix('inventory')->name('inventory.')->group(function () {
     Route::get('/index', function () {
@@ -57,10 +111,15 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
         }
         )->name('stock');
 
+        Route::get('/stock-management', function () {
+            return view('pages.inventory.stock-management');
+        }
+        )->name('stock-management');
+
         Route::get('/movements', function () {
             return view('pages.inventory.movements');
         }
-        )->name('movements');
+        )->name('inventory.movements');
 
         Route::get('/receiving', function () {
             return view('pages.inventory.receiving.index');
@@ -72,6 +131,16 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
         }
         )->name('receiving.create');
 
+        Route::get('/receiving/supplier-returns', function () {
+            return view('pages.inventory.receiving.supplier-returns');
+        }
+        )->name('receiving.supplier-returns');
+
+        Route::get('/receiving/customer-returns', function () {
+            return view('pages.inventory.receiving.customer-returns');
+        }
+        )->name('receiving.customer-returns');
+
         Route::get('/suppliers', function () {
             return view('pages.inventory.suppliers');
         }
@@ -82,10 +151,30 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
         }
         )->name('transfer');
 
+        Route::get('/stock-transfer', function () {
+            return view('pages.inventory.stock-transfer');
+        }
+        )->name('inventory.stock-transfer');
+
+        Route::get('/stock-transfer-analytics', function () {
+            return view('pages.inventory.stock-transfer-analytics');
+        }
+        )->name('inventory.stock-transfer-analytics');
+
+        Route::get('/label-designer', function () {
+            return view('pages.inventory.label-designer');
+        }
+        )->name('inventory.label-designer');
+
         Route::get('/deadstock', function () {
             return view('pages.inventory.deadstock');
         }
         )->name('deadstock');
+
+        // Analytics
+        Route::get('/analytics', function () {
+            return view('pages.analytics.dashboard');
+        })->name('analytics.dashboard');
     });
 
 // Finance
@@ -142,6 +231,10 @@ Route::get('/reports/cash-register', function () {
 Route::get('/settings', function () {
     return view('pages.settings.index');
 })->name('settings.index');
+
+Route::get('/settings/loyalty', function () {
+    return view('pages.settings.loyalty');
+})->name('settings.loyalty');
 
 // User Management
 Route::get('/users', function () {

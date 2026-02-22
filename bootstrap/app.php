@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'tenant' => \App\Http\Middleware\TenantMiddleware::class,
+            'super_admin' => \App\Http\Middleware\SuperAdmin::class,
         ]);
         // $middleware->append(\App\Http\Middleware\TenantMiddleware::class); // Removed from global, moved to alias
     })

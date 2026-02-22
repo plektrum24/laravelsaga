@@ -1,7 +1,7 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 15: Inventory Audit & Stock Alerts (Complete)
-> **Milestone**: v1.4 — Omnichannel Retail Backbone
+> **Current Phase**: Phase 21: Sales Force Enhancement
+> **Milestone**: v2.0 — Sales Force Optimization
 
 ## Must-Haves (from SPEC)
 - [x] Working Local Environment (`.env`, `Composer`, `NPM`)
@@ -132,7 +132,120 @@
 
 **Tasks**:
 - [x] Implement Low-Stock notification badges in Header
-- [x] Create `StockMovement` model and tracking logic
+- [x] Create `InventoryMovement` model and tracking logic
 - [x] Implement "Stock Adjustment" feature with reason codes
 - [x] Add "Low Stock" filter and highlighting in Items list
 - [x] Dashboard widget for Top Deadstock
+- [x] Stock Movements audit log page with filters
+- [x] Route fixes: adjustStock endpoint corrected to InventoryController
+
+### Phase 16: Customer Loyalty Program
+**Status**: ✅ Complete
+**Objective**: Implement comprehensive customer loyalty system with points, tiers, and rewards.
+
+**Tasks**:
+- [x] Create loyalty tables migration
+- [x] Implement points earning/redemption system
+- [x] Create membership tiers with auto-assessment
+- [x] Build rewards catalog and redemption
+- [x] Loyalty settings UI
+- [x] API endpoints for all loyalty features
+
+### Phase 17: Multi-Branch Stock Transfer
+**Status**: ✅ Complete
+**Objective**: Enable stock transfers between branches with approval workflow.
+
+**Tasks**:
+- [x] Stock transfer tables (header & items)
+- [x] Transfer request/approval workflow
+- [x] PDF generation for transfer orders
+- [x] Transfer analytics dashboard
+- [x] API and UI for transfer management
+
+### Phase 18: Barcode & Label Printing
+**Status**: ✅ Complete
+**Objective**: Barcode generation and customizable label printing system.
+
+**Tasks**:
+- [x] Barcode generation service
+- [x] Label template designer
+- [x] Print job management
+- [x] Product barcode management
+- [x] Label print UI
+
+### Phase 19: E-Commerce Integration
+**Status**: ✅ Complete
+**Objective**: Full online store with cart, checkout, and order management.
+
+**Tasks**:
+- [x] Web cart & cart items
+- [x] Web orders & order items
+- [x] Checkout flow
+- [x] Payment gateway integration
+- [x] Order management system
+- [x] Product catalog for web
+
+### Phase 20: Mobile App (Customer-Facing) 🆕
+**Status**: ⏸️ ON HOLD - Wave 1 Complete
+**Milestone**: v1.9 — Mobile Experience
+**Framework**: React Native (Expo)
+**Note:** Development paused to focus on frontend UI/UX improvements
+
+**Wave 1: Foundation** ✅ COMPLETE
+- [x] Project setup with Expo
+- [x] Install dependencies
+- [x] Create project structure
+- [x] Configure API services (auth, product, cart, order, loyalty)
+- [x] Create Zustand stores (auth, cart, product)
+- [x] Create custom hooks (useAuth)
+- [x] Authentication screens (login/register) ✅
+- [x] Product catalog screens (shop) ✅
+- [x] Product search & categories ✅
+- [x] Home screen with featured products ✅
+- [x] Shopping cart screen ✅
+- [x] Loyalty/Rewards screen ✅
+- [x] Profile screen ✅
+- [x] Product detail page ✅
+- [x] Basic navigation (tabs layout) ✅
+
+**Wave 2: Shopping & Loyalty** ⏸️ ON HOLD
+- [x] Shopping cart ✅
+- [ ] Checkout flow
+- [ ] Order management
+- [x] Loyalty integration (points, QR card) ✅
+
+**Wave 3: Engagement** ⏸️ ON HOLD
+- [ ] Push notifications (FCM)
+- [ ] Barcode scanner
+- [ ] Store locator
+- [ ] Order tracking
+
+**Wave 4: Advanced** ⏸️ ON HOLD
+- [ ] Scan & go
+- [ ] Recommendations
+- [ ] Reviews & ratings
+- [ ] App store submission
+
+### Phase 21: Sales Force Enhancement 🆕
+**Status**: ⏳ PLANNING COMPLETE - Ready for Implementation
+**Milestone**: v2.0 — Sales Force Optimization
+**Priority:** HIGH
+
+**Wave 1: Menu Restructuring**
+- [ ] Move "Sales Order History" to Sales Force menu
+- [ ] Remove duplicate from Team Karyawan menu
+- [ ] Verify menu visibility for correct roles
+- [ ] Test all menu links
+
+**Wave 2: Sales Force Reports**
+- [ ] Create SalesForceReportController
+- [ ] Create API endpoints for Sales Force analytics
+- [ ] Add Sales Force report card to Reports page
+- [ ] Implement charts/visualizations
+- [ ] Add export functionality (Excel/PDF)
+
+**Wave 3: 404 Page Fixes**
+- [ ] Identify all routes returning 404
+- [ ] Create missing blade views
+- [ ] Add proper routing in web.php
+- [ ] Test all navigation paths

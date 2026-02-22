@@ -31,23 +31,23 @@ class InventoryController extends Controller
                     return response()->json(['success' => false, 'message' => 'Stock tidak mencukupi'], 400);
                 }
                 $product->decrement('stock', $qty);
-                $newStock = $product->stock; // Laravel decrement doesn't auto upd model instance sometimes
+                $newStock = $product->stock;
             } else {
                 $product->increment('stock', $qty);
                 $newStock = $product->stock;
             }
 
-            // Log Movement
-            DB::table('inventory_movements')->insert([
+            // Log Movement using model
+            InventoryMovement::create([
+                'tenant_id' => auth()->user()->tenant_id,
                 'product_id' => $product->id,
-                'branch_id' => $request->branch_id ?? 1, // Default to 1 if null, or handle error
+                'branch_id' => $request->branch_id ?? auth()->user()->branch_id,
                 'user_id' => auth()->id(),
-                'type' => 'adjustment', // Enum: in, out, adjustment, transfer
+                'reference_number' => 'ADJ-' . date('Ymd') . '-' . mt_rand(1000, 9999),
+                'type' => 'adjustment',
                 'qty' => $request->type === 'add' ? $qty : -$qty,
                 'current_stock' => $newStock,
                 'notes' => $request->reason ?? 'Manual Adjustment',
-                'created_at' => now(),
-                'updated_at' => now(),
             ]);
 
             DB::connection('tenant')->commit();

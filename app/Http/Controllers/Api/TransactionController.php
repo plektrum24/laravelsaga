@@ -7,6 +7,8 @@ use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\LoyaltySetting;
+use App\Models\CustomerPoint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -104,6 +106,11 @@ class TransactionController extends Controller
                 'status' => 'completed'
             ]);
 
+            // Award loyalty points to customer
+            if ($request->customer_id) {
+                $this->awardLoyaltyPoints($request->customer_id, $transaction->id, $grandTotal);
+            }
+
             foreach ($itemsToInsert as $item) {
                 $transaction->items()->create($item);
 
@@ -137,6 +144,54 @@ class TransactionController extends Controller
         catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Award loyalty points to customer
+     */
+    private function awardLoyaltyPoints($customerId, $transactionId, $amount)
+    {
+        $tenantId = auth()->user()->tenant_id;
+        $settings = LoyaltySetting::forTenant($tenantId);
+        
+        if (!$settings || !$settings->enabled) {
+            return;
+        }
+        
+        $customer = Customer::find($customerId);
+        if (!$customer) {
+            return;
+        }
+        
+        // Assess tier after transaction
+        $customer->assessAndUpdateTier();
+        
+        // Calculate base points
+        $basePoints = $settings->calculatePoints($amount);
+        
+        // Apply tier multiplier
+        $multiplier = $customer->getPointsMultiplier();
+        $totalPoints = floor($basePoints * $multiplier);
+        
+        if ($totalPoints > 0) {
+            // Calculate current balance
+            $balanceData = CustomerPoint::getBalanceWithBreakdown($customerId);
+            $balance = $balanceData['balance'];
+            
+            // Create points record
+            CustomerPoint::create([
+                'customer_id' => $customerId,
+                'tenant_id' => $tenantId,
+                'points' => $totalPoints,
+                'type' => CustomerPoint::TYPE_EARN,
+                'reference_type' => 'transaction',
+                'reference_id' => $transactionId,
+                'expiry_date' => now()->addMonths($settings->points_expiry_months),
+                'balance_after' => $balance + $totalPoints,
+                'notes' => 'Earned from transaction #' . $transactionId . 
+                          ($customer->getTierName() ? " ({$customer->getTierName()} Tier)" : ''),
+            ]);
         }
     }
 }

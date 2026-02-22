@@ -29,6 +29,7 @@ return [
                     ['label' => 'Salesmen Data', 'route' => 'sales.index'], // Assuming route exists or will be created
                     ['label' => 'Sales Orders', 'route' => 'sales.create'],
                     ['label' => 'Visit Plans', 'route' => 'sales.index'],
+                    ['label' => 'Sales Order History', 'route' => 'pos.history'],
                 ]
             ],
             [
@@ -40,6 +41,9 @@ return [
                     ['label' => 'Items', 'route' => 'inventory.index'],
                     ['label' => 'Categories', 'route' => 'inventory.categories'],
                     ['label' => 'Stock Management', 'route' => 'inventory.stock-management'],
+                    ['label' => 'Stock Transfer', 'route' => 'inventory.stock-transfer'],
+                    ['label' => 'Transfer Analytics', 'route' => 'inventory.stock-transfer-analytics'],
+                    ['label' => 'Label Designer', 'route' => 'inventory.label-designer'],
                     ['label' => 'Stock Movements', 'route' => 'inventory.movements'],
                     ['label' => 'Deadstock', 'route' => 'inventory.deadstock'],
                     ['label' => 'Transfer Item', 'route' => 'inventory.transfer'],
@@ -84,7 +88,6 @@ return [
                 'submenu' => [
                     ['label' => 'Data Karyawan', 'route' => 'users.index'],
                     ['label' => 'Kelola Team', 'route' => 'team.manage'],
-                    ['label' => 'Sales Order History', 'route' => 'pos.history'],
                     ['label' => 'Sales POS', 'route' => 'pos.index'],
                     ['label' => 'Via Management', 'route' => 'via.management'],
                 ]
@@ -99,6 +102,12 @@ return [
                 'route' => 'reports.index',
                 'icon' => '<path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
                 'roles' => ['Owner', 'Manager', 'Kasir']
+            ],
+            [
+                'label' => 'Analytics Dashboard',
+                'route' => 'analytics.dashboard',
+                'icon' => '<path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />',
+                'roles' => ['Owner', 'Manager']
             ],
             [
                 'label' => 'Payroll (Gaji)',
@@ -125,6 +134,7 @@ return [
                 'roles' => ['Owner', 'Manager', 'Kasir', 'Gudang'],
                 'submenu' => [
                     ['label' => 'Store Settings', 'route' => 'settings.index'],
+                    ['label' => 'Loyalty Program', 'route' => 'settings.loyalty'],
                     ['label' => 'Backup & Export', 'route' => 'settings.index', 'params' => ['tab' => 'backup']],
                 ]
             ]

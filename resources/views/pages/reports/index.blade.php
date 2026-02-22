@@ -15,6 +15,13 @@
                             categories: [],
                             salesChart: null,
 
+                            // Sales Force Data
+                            salesForceData: {
+                                summary: { total_salesmen: 0, total_orders: 0, total_revenue: 0, avg_order_value: 0, avg_conversion_rate: 0 },
+                                salesmen: [],
+                                top_performer: null
+                            },
+
                             formatCurrency(amount) {
                                 return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
                             },
@@ -38,7 +45,7 @@
                                 try {
                                     const token = localStorage.getItem('saga_token');
                                     const headers = { 'Authorization': 'Bearer ' + token };
-                                    
+
                                     // Fetch Sales Overview
                                     const resSales = await fetch(`/api/reports/sales-overview?days=30`, { headers });
                                     const dataSales = await resSales.json();
@@ -53,6 +60,11 @@
                                     const resCat = await fetch(`/api/reports/category-performance`, { headers });
                                     const dataCat = await resCat.json();
                                     if(dataCat.success) this.categories = dataCat.data;
+
+                                    // Fetch Sales Force Performance
+                                    const resSalesForce = await fetch(`/api/reports/sales-force/performance?days=30`, { headers });
+                                    const dataSalesForce = await resSalesForce.json();
+                                    if(dataSalesForce.success) this.salesForceData = dataSalesForce.data;
 
                                     this.$nextTick(() => {
                                         if(this.activeTab === 'sales') this.renderSalesChart();
@@ -203,6 +215,24 @@
                     <span class="font-bold text-gray-700 dark:text-gray-200">Laporan Kas Harian</span>
                 </div>
                 <p class="text-xs text-gray-500">Fisik Uang & Shift</p>
+            </button>
+
+            <!-- Sales Force Report -->
+            <button @click="activeTab = 'salesforce'"
+                :class="activeTab === 'salesforce' ? 'border-purple-500 ring-1 ring-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'"
+                class="relative p-4 rounded-2xl border transition-all text-left group">
+                <div class="flex items-center gap-3 mb-2">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center dark:bg-purple-900/30 dark:text-purple-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                            </path>
+                        </svg>
+                    </div>
+                    <span class="font-bold text-gray-700 dark:text-gray-200">Sales Force</span>
+                </div>
+                <p class="text-xs text-gray-500">Performance Salesman</p>
             </button>
         </div>
 
@@ -509,6 +539,132 @@
                 </div>
             </div>
 
+            <!-- SALES FORCE PERFORMANCE TAB -->
+            <div x-show="activeTab === 'salesforce'" x-cloak class="space-y-6"
+                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4"
+                x-transition:enter-end="opacity-100 translate-y-0">
+                
+                <!-- Sales Force Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg shadow-purple-500/20">
+                        <p class="text-purple-100 text-sm font-medium mb-1">Total Salesman</p>
+                        <h3 class="text-3xl font-bold" x-text="salesForceData.summary.total_salesmen">0</h3>
+                        <p class="text-xs text-purple-100 mt-2">Active sales team</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Orders (Sales Force)</p>
+                        <h3 class="text-3xl font-bold text-gray-800 dark:text-white" x-text="salesForceData.summary.total_orders">0</h3>
+                        <p class="text-xs text-brand-500 mt-2 font-medium">From sales team</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Avg Order Value</p>
+                        <h3 class="text-3xl font-bold text-gray-800 dark:text-white" x-text="formatCurrency(salesForceData.summary.avg_order_value)">Rp 0</h3>
+                        <p class="text-xs text-gray-500 mt-2">Per transaction</p>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Conversion Rate</p>
+                        <h3 class="text-3xl font-bold text-gray-800 dark:text-white" x-text="salesForceData.summary.avg_conversion_rate.toFixed(1) + '%'">0%</h3>
+                        <p class="text-xs text-green-500 mt-2 font-medium">Success rate</p>
+                    </div>
+                </div>
+
+                <!-- Salesman Performance Table -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-800 dark:text-white">Performance per Salesman</h3>
+                        <button @click="exportSalesForceReport()" class="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Export
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-500 uppercase text-xs">
+                                <tr>
+                                    <th class="px-6 py-3">Salesman</th>
+                                    <th class="px-6 py-3 text-center">Total Orders</th>
+                                    <th class="px-6 py-3 text-right">Total Sales</th>
+                                    <th class="px-6 py-3 text-right">Avg Order</th>
+                                    <th class="px-6 py-3 text-center">Customers</th>
+                                    <th class="px-6 py-3 text-center">Last Sale</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                <template x-for="salesman in salesForceData.salesmen" :key="salesman.id">
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                        <td class="px-6 py-4 font-medium text-gray-800 dark:text-white">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-bold" x-text="getInitials(salesman.name)">
+                                                </div>
+                                                <span x-text="salesman.name"></span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center text-gray-600 dark:text-gray-300" x-text="salesman.total_orders">0</td>
+                                        <td class="px-6 py-4 text-right text-gray-600 dark:text-gray-300" x-text="formatCurrency(salesman.total_sales)">Rp 0</td>
+                                        <td class="px-6 py-4 text-right text-gray-600 dark:text-gray-300" x-text="formatCurrency(salesman.avg_order_value)">Rp 0</td>
+                                        <td class="px-6 py-4 text-center text-gray-600 dark:text-gray-300" x-text="salesman.unique_customers">0</td>
+                                        <td class="px-6 py-4 text-center">
+                                            <span class="text-xs text-gray-500" x-text="salesman.last_sale_date ? formatDate(salesman.last_sale_date) : '-'"></span>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <template x-if="salesForceData.salesmen.length === 0">
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                                            Belum ada data salesman
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top Performers -->
+                <template x-if="salesForceData.top_performer">
+                    <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border border-amber-200 dark:border-amber-800 p-6">
+                        <h3 class="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                            Top Performer This Month
+                        </h3>
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xl font-bold shadow-lg" x-text="getInitials(salesForceData.top_performer.name)">
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-800 dark:text-white text-lg" x-text="salesForceData.top_performer.name">John Doe</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Total Sales: <span class="font-bold text-brand-600" x-text="formatCurrency(salesForceData.top_performer.total_sales)">Rp 0</span></p>
+                                <p class="text-xs text-gray-500 mt-1">🏆 Highest performer based on total sales</p>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function exportSalesForceReport() {
+    const token = localStorage.getItem('saga_token');
+    window.open(`/api/reports/sales-force/export?days=30&format=csv`, '_blank');
+}
+</script>
+@endpush

@@ -66,4 +66,28 @@ class User extends Authenticatable
     {
         return $this->hasOne(Employee::class);
     }
+
+    /**
+     * Check if user is super admin
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    /**
+     * Check if user is tenant owner
+     */
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    /**
+     * Check if user can access SaaS portal
+     */
+    public function canAccessPortal(): bool
+    {
+        return in_array($this->role, ['super_admin', 'owner']);
+    }
 }

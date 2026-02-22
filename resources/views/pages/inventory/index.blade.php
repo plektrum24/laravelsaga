@@ -145,6 +145,10 @@
                         </template>
                     </select>
 
+                    <label class="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+                        <input type="checkbox" x-model="showLowStock" @change="fetchProducts()" class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                        <span class="text-sm font-semibold text-red-700 dark:text-red-400">Low Stock Only</span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -209,6 +213,7 @@
                                 x-for="(unit, uIndex) in (product.units && product.units.length > 0 ? product.units : [{unit_name: product.base_unit_name || '-', conversion_qty: 1, buy_price: product.buy_price, sell_price: product.sell_price}])"
                                 :key="product.id + '-' + uIndex">
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                                    :class="product.stock <= product.min_stock ? 'bg-red-50 dark:bg-red-900/10' : ''"
                                     style="content-visibility: auto; contain-intrinsic-size: 60px;">
                                     <td class="px-4 py-3 text-center align-middle text-gray-500" x-show="uIndex === 0"
                                         :rowspan="product.units && product.units.length > 0 ? product.units.length : 1">
@@ -263,6 +268,15 @@
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                            <button @click="openAdjustStockModal(product)"
+                                                class="inline-flex items-center justify-center w-8 h-8 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-yellow-500"
+                                                title="Adjust Stock">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6">
                                                     </path>
                                                 </svg>
                                             </button>
@@ -561,6 +575,89 @@
 
             <!-- Scanner Modal Removed -->
 
+            <!-- Stock Adjustment Modal -->
+            <div x-show="showAdjustStockModal"
+                class="fixed inset-0 z-[99999] flex items-center justify-center bg-gray-900/70 backdrop-blur-sm p-4" 
+                x-cloak 
+                @click.away="showAdjustStockModal = false">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
+                    @click.away="if(!document.body.classList.contains('swal2-shown')) showAdjustStockModal = false">
+                    <!-- Modal Header -->
+                    <div
+                        class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-100 dark:bg-gray-800">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Adjust Stock</h3>
+                        <button @click="showAdjustStockModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body -->
+                    <div class="p-6 space-y-4">
+                        <!-- Product Info -->
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                            <p class="font-bold text-gray-800 dark:text-white" x-text="adjustStockProduct.name"></p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Current Stock: <span class="font-semibold" x-text="formatNumber(adjustStockProduct.stock)"></span>
+                            </p>
+                        </div>
+
+                        <!-- Adjustment Type -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Adjustment Type</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button @click="adjustStockData.type = 'add'"
+                                    :class="adjustStockData.type === 'add' ? 'bg-green-600 text-white border-green-600' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'"
+                                    class="py-3 px-4 rounded-lg border-2 font-semibold transition-all">
+                                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                    Add Stock
+                                </button>
+                                <button @click="adjustStockData.type = 'subtract'"
+                                    :class="adjustStockData.type === 'subtract' ? 'bg-red-600 text-white border-red-600' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'"
+                                    class="py-3 px-4 rounded-lg border-2 font-semibold transition-all">
+                                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                    </svg>
+                                    Subtract Stock
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quantity -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                            <input type="number" x-model="adjustStockData.quantity" min="0.01" step="0.01"
+                                class="block w-full rounded-lg border-gray-400 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-white py-2.5"
+                                placeholder="Enter quantity">
+                        </div>
+
+                        <!-- Reason -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Reason / Notes</label>
+                            <textarea x-model="adjustStockData.reason" rows="3"
+                                class="block w-full rounded-lg border-gray-400 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-white py-2.5"
+                                placeholder="e.g., Stock take, damaged goods, found items..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div
+                        class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex justify-end gap-3">
+                        <button @click="showAdjustStockModal = false"
+                            class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors">
+                            Cancel
+                        </button>
+                        <button @click="saveAdjustStock()"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-colors font-medium">
+                            Save Adjustment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         @push('scripts')
@@ -622,6 +719,9 @@
                         showModal: false,
                         editMode: false,
                         isUploading: false,
+                        showAdjustStockModal: false,
+                        adjustStockProduct: { id: null, name: '', stock: 0 },
+                        adjustStockData: { type: 'add', quantity: 0, reason: '' },
                         currentProduct: { name: '', category_id: '', base_unit_id: '', stock: 0, min_stock: 5, barcode: '', image_url: '', units: [] },
                         generatedSku: '',
                         showExportMenu: false,
@@ -934,6 +1034,55 @@
                                 await fetch('/api/products/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
                                 await this.fetchProducts(false);
                                 Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Product has been deleted.', toast: true, position: 'top-end', timer: 1500, showConfirmButton: false });
+                            }
+                        },
+
+                        openAdjustStockModal(product) {
+                            this.adjustStockProduct = { id: product.id, name: product.name, stock: product.stock };
+                            this.adjustStockData = { type: 'add', quantity: 0, reason: '' };
+                            this.showAdjustStockModal = true;
+                        },
+
+                        async saveAdjustStock() {
+                            if (this.adjustStockData.quantity <= 0) {
+                                Swal.fire({ icon: 'warning', title: 'Warning', text: 'Quantity must be greater than 0' });
+                                return;
+                            }
+
+                            const token = localStorage.getItem('saga_token');
+                            try {
+                                const response = await fetch('/api/products/adjust-stock/' + this.adjustStockProduct.id, {
+                                    method: 'POST',
+                                    headers: { 
+                                        'Authorization': 'Bearer ' + token,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        type: this.adjustStockData.type,
+                                        quantity: this.adjustStockData.quantity,
+                                        reason: this.adjustStockData.reason || 'Manual Adjustment'
+                                    })
+                                });
+                                const data = await response.json();
+
+                                if (data.success) {
+                                    this.showAdjustStockModal = false;
+                                    await this.fetchProducts(false);
+                                    Swal.fire({ 
+                                        icon: 'success', 
+                                        title: 'Success', 
+                                        text: 'Stock adjustment saved successfully', 
+                                        toast: true, 
+                                        position: 'top-end', 
+                                        timer: 1500, 
+                                        showConfirmButton: false 
+                                    });
+                                } else {
+                                    Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to adjust stock' });
+                                }
+                            } catch (error) {
+                                console.error('Adjust stock error:', error);
+                                Swal.fire({ icon: 'error', title: 'Error', text: 'Server error during stock adjustment' });
                             }
                         },
 

@@ -30,7 +30,6 @@ return [
                 'submenu' => [
                     ['label' => 'Data Karyawan', 'route' => 'users.index'],
                     ['label' => 'Kelola Team', 'route' => 'team.manage'],
-                    ['label' => 'Sales Order History', 'route' => 'pos.history'],
                     ['label' => 'Sales POS', 'route' => 'pos.index'],
                     ['label' => 'Via Management', 'route' => 'via.management'],
                 ]
