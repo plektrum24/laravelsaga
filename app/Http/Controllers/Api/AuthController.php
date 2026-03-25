@@ -92,4 +92,25 @@ class AuthController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Get current tenant info
+     * GET /api/tenant/info
+     */
+    public function tenantInfo(Request $request)
+    {
+        $user = $request->user();
+        
+        if (!$user || !$user->tenant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tenant found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $user->tenant
+        ]);
+    }
 }

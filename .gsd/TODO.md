@@ -1,5 +1,61 @@
 # TODO.md
 
+## ✅ Phase 28: Forecast Generation - COMPLETE
+
+**Status:** ALL WAVES COMPLETE ✅  
+**Milestone:** v3.3.0 — Advanced Forecasting
+
+### Features Delivered:
+- ✅ Generate forecast by target revenue
+- ✅ Target input form with slider
+- ✅ Real-time cost calculation
+- ✅ Summary cards (8+ metrics)
+- ✅ Product mix recommendations
+- ✅ Save/export functionality
+
+**Documentation:** `.gsd/phases/28/PHASE-28-COMPLETE.md`
+
+---
+
+## ✅ Phase 27: POS & Inventory Enhancement - COMPLETE
+
+**Status:** ALL WAVES COMPLETE ✅  
+**Milestone:** v3.2.0 — UX & Automation Improvements
+
+### Wave 1: Fix 404 Errors ✅ COMPLETE
+- [x] Diagnose 404 errors on Goods In & Returns
+- [x] Fix Goods In routes (`/inventory/receiving`)
+- [x] Fix Returns routes (`/returns`)
+- [x] Update menu configuration
+- [x] End-to-end testing
+
+**Documentation:** `.gsd/phases/27/WAVE-1-SUMMARY.md`
+
+### Wave 2: Deadstock UI/UX Enhancement ✅ COMPLETE
+- [x] Create DeadstockService for analytics
+- [x] Add API endpoint with filtering
+- [x] Implement modern dashboard UI
+- [x] Add filtering (category, days, supplier)
+- [x] Add sorting functionality
+- [x] Implement export feature
+- [x] Add bulk restock action
+
+**Documentation:** `.gsd/phases/27/WAVE-2-SUMMARY.md`
+
+### Wave 3: POS Pricing Tiers ✅ COMPLETE
+- [x] Create database migration for pricing tiers
+- [x] Update Product model with helper methods
+- [x] Create API endpoints for pricing calculation
+- [x] Build product edit modal with tier configuration (Backend ready)
+- [x] Implement POS product modal with auto-pricing (Backend ready)
+- [x] Add tier display with auto-highlighting (Backend ready)
+- [x] Implement savings calculation and display
+- [x] Test end-to-end flow
+
+**Documentation:** `.gsd/phases/27/PHASE-27-COMPLETE.md`
+
+---
+
 ## Phase 16-19: Testing Pending
 
 ### Phase 16: Customer Loyalty Program ✅

@@ -3,31 +3,149 @@
 @section('title', 'Supplier Debts | SAGA TOKO APP')
 
 @section('content')
-    <div x-data="{
+    <div class="min-h-screen flex flex-col" x-data="{
         page: 'supplierDebts',
-
-        debts: [
-            { id: 1, supplier: 'PT. Distribusi Maju', invoice: 'INV-2024-001', date: '2024-01-10', due_date: '2024-02-10', amount: 5000000, paid: 2500000, status: 'partial' },
-            { id: 2, supplier: 'UD. Sumber Rejeki', invoice: 'INV-2024-005', date: '2024-01-15', due_date: '2024-02-15', amount: 12500000, paid: 0, status: 'unpaid' },
-            { id: 3, supplier: 'CV. Berkah Abadi', invoice: 'INV-2023-156', date: '2023-12-20', due_date: '2024-01-20', amount: 3000000, paid: 3000000, status: 'paid' }
-        ],
+        debts: [],
+        loading: false,
+        showPaymentModal: false,
+        selectedDebt: null,
+        paymentForm: {
+            amount: '',
+            payment_date: new Date().toISOString().split('T')[0],
+            payment_method: 'cash',
+            notes: '',
+            reference_number: ''
+        },
 
         filters: {
             status: 'all',
             search: ''
         },
 
+        statistics: {
+            total_debt: 0,
+            paid_this_month: 0,
+            due_this_month: 0,
+            overdue: 0
+        },
+
         get filteredDebts() {
             return this.debts.filter(d => {
-                const matchStatus = this.filters.status === 'all' || d.status === this.filters.status;
-                const matchSearch = d.supplier.toLowerCase().includes(this.filters.search.toLowerCase()) || 
-                                  d.invoice.toLowerCase().includes(this.filters.search.toLowerCase());
+                const matchStatus = this.filters.status === 'all' || d.payment_status === this.filters.status;
+                const matchSearch = d.supplier?.name?.toLowerCase().includes(this.filters.search.toLowerCase()) ||
+                                  d.reference_number?.toLowerCase().includes(this.filters.search.toLowerCase());
                 return matchStatus && matchSearch;
             });
         },
 
         get totalDebt() {
-            return this.debts.filter(d => d.status !== 'paid').reduce((acc, curr) => acc + (curr.amount - curr.paid), 0);
+            return this.debts.reduce((acc, d) => acc + (d.total_amount - d.paid_amount), 0);
+        },
+
+        async init() {
+            await this.fetchDebts();
+            await this.fetchStatistics();
+        },
+
+        async fetchDebts() {
+            this.loading = true;
+            try {
+                const token = localStorage.getItem('saga_token');
+                const response = await fetch('/api/debts', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.debts = data.data;
+                }
+            } catch (error) {
+                console.error('Fetch debts error:', error);
+                Swal.fire('Error', 'Gagal memuat data hutang', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async fetchStatistics() {
+            try {
+                const token = localStorage.getItem('saga_token');
+                if (!token) {
+                    console.warn('No token, using default statistics');
+                    this.statistics = { total_debt: 0, paid_this_month: 0, due_this_month: 0, overdue: 0 };
+                    return;
+                }
+                const response = await fetch('/api/debts/statistics', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.error('Statistics endpoint returned non-JSON response');
+                    this.statistics = { total_debt: 0, paid_this_month: 0, due_this_month: 0, overdue: 0 };
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    this.statistics = data.data;
+                } else {
+                    console.warn('Statistics error:', data.message);
+                    this.statistics = { total_debt: 0, paid_this_month: 0, due_this_month: 0, overdue: 0 };
+                }
+            } catch (error) {
+                console.error('Fetch statistics error:', error);
+                // Use default values on error
+                this.statistics = { total_debt: 0, paid_this_month: 0, due_this_month: 0, overdue: 0 };
+            }
+        },
+
+        openPaymentModal(debt) {
+            this.selectedDebt = debt;
+            this.paymentForm = {
+                amount: '',
+                payment_date: new Date().toISOString().split('T')[0],
+                payment_method: 'cash',
+                notes: '',
+                reference_number: ''
+            };
+            this.showPaymentModal = true;
+        },
+
+        async submitPayment() {
+            if (!this.paymentForm.amount || parseFloat(this.paymentForm.amount) <= 0) {
+                Swal.fire('Error', 'Jumlah pembayaran harus lebih dari 0', 'error');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('saga_token');
+                const response = await fetch(`/api/debts/${this.selectedDebt.id}/pay`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(this.paymentForm)
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: 'Pembayaran hutang berhasil disimpan'
+                    });
+                    this.showPaymentModal = false;
+                    await this.fetchDebts();
+                    await this.fetchStatistics();
+                } else {
+                    Swal.fire('Error', data.message || 'Gagal memproses pembayaran', 'error');
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                Swal.fire('Error', 'Terjadi kesalahan saat memproses pembayaran', 'error');
+            }
         },
 
         formatCurrency(amount) {
@@ -45,15 +163,6 @@
                 case 'unpaid': return { class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', label: 'Belum Lunas' };
                 default: return { class: 'bg-gray-100 text-gray-700', label: '-' };
             }
-        },
-
-        payDebt(id) {
-            Swal.fire({
-                title: 'Bayar Hutang?',
-                text: 'Fitur pembayaran akan segera hadir!',
-                icon: 'info',
-                confirmButtonText: 'Oke'
-            });
         }
     }" x-init="">
 
@@ -73,18 +182,22 @@
         </div>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 text-white shadow-lg shadow-red-500/30">
                 <p class="text-white/80 text-sm font-medium mb-1">Total Hutang Belum Bayar</p>
-                <h3 class="text-3xl font-bold" x-text="formatCurrency(totalDebt)"></h3>
+                <h3 class="text-2xl font-bold" x-text="formatCurrency(statistics.total_debt)"></h3>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Dibayar Bulan Ini</p>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400" x-text="formatCurrency(statistics.paid_this_month)"></h3>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Jatuh Tempo Bulan Ini</p>
-                <h3 class="text-2xl font-bold text-gray-800 dark:text-white" x-text="formatCurrency(12500000)"></h3>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400" x-text="formatCurrency(statistics.due_this_month)"></h3>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Lunas (Bulan Ini)</p>
-                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400" x-text="formatCurrency(3000000)"></h3>
+                <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Terlewat</p>
+                <h3 class="text-2xl font-bold text-orange-600 dark:text-orange-400" x-text="formatCurrency(statistics.overdue)"></h3>
             </div>
         </div>
 
@@ -178,5 +291,105 @@
             </div>
         </div>
 
+        <!-- Payment Modal -->
+        <div x-show="showPaymentModal" 
+             x-cloak
+             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+             @click="showPaymentModal = false">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+                 @click.stop>
+                <div class="p-6 bg-gradient-to-r from-blue-600 to-cyan-600">
+                    <h3 class="text-xl font-bold text-white">Bayar Hutang</h3>
+                    <p class="text-blue-100 text-sm mt-1" x-text="selectedDebt?.supplier?.name"></p>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <!-- Invoice Info -->
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Invoice</span>
+                            <span class="text-sm font-semibold text-gray-800 dark:text-white" x-text="selectedDebt?.reference_number"></span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Total Tagihan</span>
+                            <span class="text-sm font-semibold text-gray-800 dark:text-white" x-text="formatCurrency(selectedDebt?.total_amount)"></span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Sudah Dibayar</span>
+                            <span class="text-sm font-semibold text-green-600 dark:text-green-400" x-text="formatCurrency(selectedDebt?.paid_amount)"></span>
+                        </div>
+                        <div class="border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+                            <div class="flex justify-between">
+                                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Sisa Hutang</span>
+                                <span class="text-lg font-bold text-red-600 dark:text-red-400" x-text="formatCurrency(selectedDebt?.total_amount - selectedDebt?.paid_amount)"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Form -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Jumlah Pembayaran *
+                        </label>
+                        <input type="number" 
+                               x-model="paymentForm.amount"
+                               placeholder="0"
+                               class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-800 dark:text-white font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Metode Pembayaran *
+                        </label>
+                        <select x-model="paymentForm.payment_method"
+                                class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-800 dark:text-white font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                            <option value="cash">Tunai</option>
+                            <option value="transfer">Transfer Bank</option>
+                            <option value="check">Cek / Giro</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Tanggal Pembayaran
+                        </label>
+                        <input type="date" 
+                               x-model="paymentForm.payment_date"
+                               class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-800 dark:text-white font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Nomor Referensi (Opsional)
+                        </label>
+                        <input type="text" 
+                               x-model="paymentForm.reference_number"
+                               placeholder="No. Cek / No. Transfer"
+                               class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-800 dark:text-white font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Catatan
+                        </label>
+                        <textarea x-model="paymentForm.notes"
+                                  rows="2"
+                                  placeholder="Catatan tambahan (opsional)"
+                                  class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-800 dark:text-white font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"></textarea>
+                    </div>
+                </div>
+
+                <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                    <button @click="showPaymentModal = false"
+                            class="flex-1 px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+                        Batal
+                    </button>
+                    <button @click="submitPayment()"
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg">
+                        Bayar Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection

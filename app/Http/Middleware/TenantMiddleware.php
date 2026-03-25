@@ -38,16 +38,35 @@ class TenantMiddleware
             $tenantId = $user->tenant_id;
         }
 
+        // If no tenant found, allow request to continue but without tenant DB connection
+        // This prevents 403 errors for endpoints that don't require tenant context
+        if (!$tenantId) {
+            \Illuminate\Support\Facades\Log::warning("TenantMiddleware: No tenant ID found for user " . ($user?->id ?? 'anonymous'));
+            return $next($request);
+        }
+
         if ($tenantId) {
             $tenant = Tenant::find($tenantId);
             if ($tenant) {
                 // Configure the tenant connection
-                \Illuminate\Support\Facades\Log::info("TenantMiddleware: Switching to tenant DB: " . $tenant->database_name);
-                Config::set('database.connections.tenant.database', $tenant->database_name);
+                $dbName = $tenant->database_name;
+
+                // Fallback to config database if tenant database_name is empty
+                if (empty($dbName)) {
+                    $dbName = Config::get('database.connections.tenant.database', Config::get('database.connections.mysql.database', 'tailadmin_laravel'));
+                    \Illuminate\Support\Facades\Log::info("TenantMiddleware: Using fallback DB: " . $dbName);
+                }
+
+                \Illuminate\Support\Facades\Log::info("TenantMiddleware: Switching to tenant DB: " . $dbName);
+                Config::set('database.connections.tenant.database', $dbName);
 
                 try {
                     DB::purge('tenant');
                     DB::reconnect('tenant');
+
+                    // Test the connection
+                    DB::connection('tenant')->select('SELECT 1');
+
                     \Illuminate\Support\Facades\Log::info("TenantMiddleware: Reconnected successfully.");
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error("TenantMiddleware: Connection failed: " . $e->getMessage());
@@ -55,7 +74,7 @@ class TenantMiddleware
                         'success' => false,
                         'message' => 'Database Connection Error (Middleware)',
                         'detail' => $e->getMessage(),
-                        'db_name' => $tenant->database_name
+                        'db_name' => $dbName ?? 'unknown'
                     ], 500);
                 }
             } else {

@@ -101,6 +101,27 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
         }
         )->name('index');
 
+        // Analytics Routes (Phase 30)
+        Route::get('/analytics/realtime', function () {
+            return view('pages.analytics.realtime');
+        }
+        )->name('analytics.realtime');
+
+        Route::get('/analytics/forecasting', function () {
+            return view('pages.analytics.forecasting');
+        }
+        )->name('analytics.forecasting');
+
+        Route::get('/analytics/customers', function () {
+            return view('pages.analytics.customers');
+        }
+        )->name('analytics.customers');
+
+        Route::get('/performance/monitor', function () {
+            return view('pages.performance.monitor');
+        }
+        )->name('performance.monitor');
+
         Route::get('/categories', function () {
             return view('pages.inventory.categories');
         }
@@ -119,10 +140,10 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/movements', function () {
             return view('pages.inventory.movements');
         }
-        )->name('inventory.movements');
+        )->name('movements');
 
         Route::get('/receiving', function () {
-            return view('pages.inventory.receiving.index');
+            return view('pages.inventory.receiving.goods-in-standalone');
         }
         )->name('receiving.index');
 
@@ -141,6 +162,11 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
         }
         )->name('receiving.customer-returns');
 
+        Route::get('/receiving/history', function () {
+            return view('pages.inventory.receiving.history');
+        }
+        )->name('receiving.history');
+
         Route::get('/suppliers', function () {
             return view('pages.inventory.suppliers');
         }
@@ -154,17 +180,17 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/stock-transfer', function () {
             return view('pages.inventory.stock-transfer');
         }
-        )->name('inventory.stock-transfer');
+        )->name('stock-transfer');
 
         Route::get('/stock-transfer-analytics', function () {
             return view('pages.inventory.stock-transfer-analytics');
         }
-        )->name('inventory.stock-transfer-analytics');
+        )->name('stock-transfer-analytics');
 
         Route::get('/label-designer', function () {
             return view('pages.inventory.label-designer');
         }
-        )->name('inventory.label-designer');
+        )->name('label-designer');
 
         Route::get('/deadstock', function () {
             return view('pages.inventory.deadstock');
@@ -175,7 +201,34 @@ Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/analytics', function () {
             return view('pages.analytics.dashboard');
         })->name('analytics.dashboard');
+
+        // Stock Analytics & Forecasting
+        Route::get('/stock-analytics', function () {
+            return view('pages.inventory.stock-analytics');
+        })->name('stock-analytics');
+
+        Route::get('/forecasting', function () {
+            return view('pages.inventory.forecasting');
+        })->name('forecasting');
     });
+
+// Returns (Combined Supplier & Customer Returns)
+Route::prefix('inventory/returns')->name('inventory.returns.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.inventory.returns.index');
+    })->name('index');
+    Route::get('/supplier', function () {
+        return view('pages.inventory.returns.supplier-returns');
+    })->name('supplier');
+    Route::get('/customer', function () {
+        return view('pages.inventory.returns.customer-returns');
+    })->name('customer');
+});
+
+// Analytics Dashboard (Standalone - Outside Inventory)
+Route::get('/analytics', function () {
+    return view('pages.analytics.dashboard');
+})->name('analytics.dashboard');
 
 // Finance
 Route::prefix('finance')->name('finance.')->group(function () {
@@ -199,7 +252,25 @@ Route::prefix('sales')->name('sales.')->group(function () {
             return view('pages.sales.create');
         }
         )->name('create');
+        Route::get('/history', function () {
+            return view('pages.sales.history');
+        }
+        )->name('history');
     });
+
+// Salesman Routes
+Route::prefix('salesman')->name('salesman.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.salesman.index');
+    })->name('index');
+});
+
+// Visit Plans Routes
+Route::prefix('visit-plans')->name('visit-plans.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.visit-plans.index');
+    })->name('index');
+});
 
 // POS Routes - Cashier System
 Route::prefix('pos')->name('pos.')->group(function () {
@@ -263,6 +334,25 @@ Route::get('/via-management', function () {
 Route::get('/payroll', function () {
     return view('pages.payroll.index');
 })->name('payroll.index');
+
+// HR & Payroll Routes (New)
+Route::prefix('employees')->name('employees.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.employees.index');
+    })->name('index');
+});
+
+Route::prefix('attendance')->name('attendance.')->group(function () {
+    Route::get('/', function () {
+        return view('pages.attendance.index');
+    })->name('index');
+});
+
+Route::prefix('hr')->name('hr.')->group(function () {
+    Route::get('/reports', function () {
+        return view('pages.hr.reports');
+    })->name('reports');
+});
 
 // Branch Management
 Route::get('/branches', function () {

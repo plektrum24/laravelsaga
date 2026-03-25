@@ -337,26 +337,35 @@ class AnalyticsController extends Controller
      */
     public function generateForecast(Request $request)
     {
-        $validated = $request->validate([
-            'days' => 'integer|min:7|max:90',
-        ]);
-
-        $tenantId = auth()->user()->tenant_id;
-        $days = $validated['days'] ?? 30;
-
-        $result = $this->forecastingService->generateSalesForecast($tenantId, $days);
-
-        if ($result['success']) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Forecast generated successfully',
-                'data' => $result['forecasts'],
+        try {
+            $validated = $request->validate([
+                'days' => 'nullable|integer|min:7|max:90',
             ]);
-        } else {
+
+            $tenantId = auth()->user()->tenant_id;
+            $days = $validated['days'] ?? 30;
+
+            $result = $this->forecastingService->generateSalesForecast($tenantId, $days);
+
+            if ($result['success'] && !empty($result['forecasts'])) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Forecast generated successfully',
+                    'data' => $result['forecasts'],
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Failed to generate forecast. Insufficient historical data.',
+                    'data' => [],
+                ], 400);
+            }
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $result['message'],
-            ], 400);
+                'message' => 'Failed to calculate forecast: ' . $e->getMessage(),
+                'data' => [],
+            ], 500);
         }
     }
 

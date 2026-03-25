@@ -45,6 +45,10 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
 
     // Menus
     Route::get('/user/menus', [\App\Http\Controllers\Api\MenuController::class , 'getMenus']);
+    
+    // Tenant Info
+    Route::get('/tenant/info', [\App\Http\Controllers\Api\AuthController::class , 'tenantInfo']);
+    
     // Notifications (Mock)
     Route::get('/notifications', function () {
             return response()->json(['success' => true, 'data' => []]);
@@ -53,6 +57,16 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
 
         // Dashboard
         Route::get('/dashboard/stats', [DashboardController::class , 'stats']);
+
+        // Branch Management
+        Route::prefix('branches')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\BranchController::class , 'index']);
+            Route::get('/{id}', [\App\Http\Controllers\Api\BranchController::class , 'show']);
+            Route::post('/', [\App\Http\Controllers\Api\BranchController::class , 'store']);
+            Route::put('/{id}', [\App\Http\Controllers\Api\BranchController::class , 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\Api\BranchController::class , 'destroy']);
+            Route::get('/statistics', [\App\Http\Controllers\Api\BranchController::class , 'statistics']);
+        });
 
         // Products & Inventory
         // Note: 'products/categories' resource must come BEFORE 'products' resource if using same prefix, 
@@ -69,6 +83,21 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::get('/products/expiry', [\App\Http\Controllers\Api\InventoryController::class , 'expiry']);
         Route::post('/products/adjust-stock/{id}', [\App\Http\Controllers\Api\InventoryController::class , 'adjustStock']);
         Route::post('/products/reset-all-stock', [\App\Http\Controllers\Api\InventoryController::class , 'resetAllStock']);
+        // Inventory Exports
+        Route::get('/inventory/export/excel', [\App\Http\Controllers\Api\InventoryController::class , 'exportExcel']);
+        Route::get('/inventory/export/pdf', [\App\Http\Controllers\Api\InventoryController::class , 'exportPdf']);
+        Route::get('/inventory/adjustments/export', [\App\Http\Controllers\Api\InventoryController::class , 'exportAdjustments']);
+
+        // Purchases (Goods In) - For Receiving History
+        Route::get('/purchases', [\App\Http\Controllers\Api\PurchaseController::class , 'index']);
+        Route::get('/purchases/{id}', [\App\Http\Controllers\Api\PurchaseController::class , 'show']);
+        Route::post('/purchases', [\App\Http\Controllers\Api\PurchaseController::class , 'store']);
+        Route::post('/purchases/{id}', [\App\Http\Controllers\Api\PurchaseController::class , 'update']);
+        Route::delete('/purchases/{id}', [\App\Http\Controllers\Api\PurchaseController::class , 'destroy']);
+        Route::get('/purchases/{id}/receipt', [\App\Http\Controllers\Api\PurchaseController::class , 'printReceipt']);
+        // Purchases Export
+        Route::get('/purchases/export/excel', [\App\Http\Controllers\Api\PurchaseController::class , 'exportExcel']);
+        Route::get('/purchases/export/pdf', [\App\Http\Controllers\Api\PurchaseController::class , 'exportPdf']);
 
         // Core Resources
         Route::get('product-exports/excel', [ProductController::class , 'exportExcel']);
@@ -77,11 +106,24 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::post('products/import', [ProductController::class , 'import']);
         // delete-all moved to auth-only group above
         Route::apiResource('products', ProductController::class);
+        
+        // Deadstock Analytics
+        Route::get('/products/deadstock', [ProductController::class , 'deadstock']);
+        Route::get('/products/deadstock/export', [ProductController::class , 'exportDeadstock']);
+        
+        // Pricing Tiers
+        Route::get('/products/{product}/pricing-tiers', [ProductController::class , 'getPricingTiers']);
+        Route::post('/products/calculate-price', [ProductController::class , 'calculatePrice']);
+        
         Route::apiResource('customers', CustomerController::class);
 
         // Transactions / POS
         Route::get('transactions/{transaction}/receipt', [\App\Http\Controllers\Api\TransactionExportController::class , 'downloadReceipt']);
         Route::apiResource('transactions', TransactionController::class);
+
+        // Users (for tenant - fetch cashiers, employees, etc.)
+        Route::get('users', [\App\Http\Controllers\Api\UserController::class , 'index']);
+        Route::get('users/cashiers', [\App\Http\Controllers\Api\UserController::class , 'cashiers']);
 
         // Employees & Payroll
         Route::get('employees/{employee}/payroll-preview', [\App\Http\Controllers\Api\PayrollController::class , 'preview']);
@@ -103,6 +145,60 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::get('/reports/inventory-movements', [\App\Http\Controllers\Api\ReportController::class , 'inventoryMovements']);
         Route::get('/reports/dashboard', [\App\Http\Controllers\Api\ReportController::class , 'dashboard']);
         Route::get('/products/reports/price-logs', [\App\Http\Controllers\Api\ReportController::class , 'priceLogs']);
+
+        // Real-time Analytics (Phase 30)
+        Route::prefix('analytics')->group(function () {
+            Route::get('/realtime', [\App\Http\Controllers\Api\Analytics\RealtimeController::class , 'index']);
+            Route::get('/sales/live', [\App\Http\Controllers\Api\Analytics\RealtimeController::class , 'liveSales']);
+            Route::get('/users/active', [\App\Http\Controllers\Api\Analytics\RealtimeController::class , 'activeUsers']);
+            Route::get('/revenue/today', [\App\Http\Controllers\Api\Analytics\RealtimeController::class , 'revenueToday']);
+            Route::get('/stats/hourly', [\App\Http\Controllers\Api\Analytics\RealtimeController::class , 'hourlyStats']);
+            Route::get('/products/top', [\App\Http\Controllers\Api\Analytics\RealtimeController::class , 'topProducts']);
+        });
+
+        // Report Builder (Phase 30)
+        Route::prefix('reports')->group(function () {
+            Route::get('/sales', [\App\Http\Controllers\Api\Analytics\ReportBuilderController::class , 'salesReport']);
+            Route::get('/inventory', [\App\Http\Controllers\Api\Analytics\ReportBuilderController::class , 'inventoryReport']);
+            Route::get('/customers', [\App\Http\Controllers\Api\Analytics\ReportBuilderController::class , 'customerReport']);
+            Route::post('/export/excel', [\App\Http\Controllers\Api\Analytics\ReportBuilderController::class , 'exportExcel']);
+        });
+
+        // Forecasting (Phase 30)
+        Route::prefix('forecasting')->group(function () {
+            Route::get('/sales', [\App\Http\Controllers\Api\Analytics\ForecastingController::class , 'salesForecast']);
+            Route::get('/trend', [\App\Http\Controllers\Api\Analytics\ForecastingController::class , 'salesTrend']);
+            Route::get('/inventory', [\App\Http\Controllers\Api\Analytics\ForecastingController::class , 'inventoryForecast']);
+            Route::get('/categories', [\App\Http\Controllers\Api\Analytics\ForecastingController::class , 'categoryForecast']);
+        });
+
+        // Customer Analytics (Phase 30)
+        Route::prefix('customers')->group(function () {
+            Route::get('/segmentation', [\App\Http\Controllers\Api\Analytics\CustomerAnalyticsController::class , 'segmentation']);
+            Route::get('/lifetime-value', [\App\Http\Controllers\Api\Analytics\CustomerAnalyticsController::class , 'lifetimeValue']);
+            Route::get('/churn-risk', [\App\Http\Controllers\Api\Analytics\CustomerAnalyticsController::class , 'churnRisk']);
+            Route::get('/journey', [\App\Http\Controllers\Api\Analytics\CustomerAnalyticsController::class , 'journey']);
+        });
+
+        // Performance Monitoring (Phase 30 - Wave 3)
+        Route::prefix('performance')->group(function () {
+            Route::get('/summary', [\App\Http\Controllers\Api\Performance\PerformanceController::class , 'summary']);
+            Route::get('/database/stats', [\App\Http\Controllers\Api\Performance\PerformanceController::class , 'databaseStats']);
+            Route::get('/database/slow-queries', [\App\Http\Controllers\Api\Performance\PerformanceController::class , 'slowQueries']);
+            Route::get('/database/indexes', [\App\Http\Controllers\Api\Performance\PerformanceController::class , 'missingIndexes']);
+            Route::post('/database/optimize', [\App\Http\Controllers\Api\Performance\PerformanceController::class , 'optimizeTables']);
+            Route::get('/cache/stats', [\App\Http\Controllers\Api\Performance\PerformanceController::class , 'cacheStats']);
+            Route::post('/cache/warmup', [\App\Http\Controllers\Api\Performance\PerformanceController::class , 'warmupCache']);
+            Route::post('/cache/clear', [\App\Http\Controllers\Api\Performance\PerformanceController::class , 'clearCache']);
+        });
+
+        // Sales Trends & Analytics
+        Route::prefix('sales-trends')->group(function () {
+            Route::get('/trend', [\App\Http\Controllers\Api\SalesTrendController::class , 'trend']);
+            Route::get('/by-category', [\App\Http\Controllers\Api\SalesTrendController::class , 'byCategory']);
+            Route::get('/top-products', [\App\Http\Controllers\Api\SalesTrendController::class , 'topProducts']);
+            Route::get('/hourly-pattern', [\App\Http\Controllers\Api\SalesTrendController::class , 'hourlyPattern']);
+        });
 
         // Sales Force Reports
         Route::prefix('reports/sales-force')->group(function () {
@@ -164,16 +260,25 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
             Route::post('/{id}/reject', [\App\Http\Controllers\Api\StockTransferController::class , 'reject']);
             Route::post('/{id}/ship', [\App\Http\Controllers\Api\StockTransferController::class , 'ship']);
             Route::post('/{id}/receive', [\App\Http\Controllers\Api\StockTransferController::class , 'receive']);
-            
+
             // Export/Print
             Route::get('/{id}/print', [\App\Http\Controllers\Api\StockTransferExportController::class , 'printTransferOrder']);
             Route::get('/{id}/print-receipt', [\App\Http\Controllers\Api\StockTransferExportController::class , 'printReceipt']);
-            
+
             // Analytics & Reports
             Route::get('/analytics/dashboard', [\App\Http\Controllers\Api\StockTransferController::class , 'dashboard']);
             Route::get('/reports/in-transit', [\App\Http\Controllers\Api\StockTransferController::class , 'inTransitReport']);
             Route::get('/reports/history', [\App\Http\Controllers\Api\StockTransferController::class , 'historyReport']);
             Route::get('/reports/branch-comparison', [\App\Http\Controllers\Api\StockTransferController::class , 'branchComparison']);
+        });
+
+        // Debt Management (Supplier Debts / Accounts Payable)
+        Route::prefix('debts')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\DebtPaymentController::class , 'index']);
+            Route::get('/{id}', [\App\Http\Controllers\Api\DebtPaymentController::class , 'show']);
+            Route::post('/{id}/pay', [\App\Http\Controllers\Api\DebtPaymentController::class , 'pay']);
+            Route::get('/payments/history', [\App\Http\Controllers\Api\DebtPaymentController::class , 'paymentHistory']);
+            Route::get('/statistics', [\App\Http\Controllers\Api\DebtPaymentController::class , 'statistics']);
         });
 
         // Barcodes
@@ -332,7 +437,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
             Route::get('/stock-optimization', [\App\Http\Controllers\Api\AnalyticsController::class , 'stockOptimization']);
             Route::get('/churn-prediction', [\App\Http\Controllers\Api\AnalyticsController::class , 'churnPrediction']);
             Route::post('/run-forecast', [\App\Http\Controllers\Api\AnalyticsController::class , 'runForecast']);
-            
+
             // Customer Analytics
             Route::post('/rfm-calculate', [\App\Http\Controllers\Api\AnalyticsController::class , 'calculateRFM']);
             Route::get('/rfm-segments', [\App\Http\Controllers\Api\AnalyticsController::class , 'getRFMSegments']);
@@ -340,6 +445,14 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
             Route::get('/cohort-analysis', [\App\Http\Controllers\Api\AnalyticsController::class , 'getCohortAnalysis']);
             Route::post('/generate-report', [\App\Http\Controllers\Api\AnalyticsController::class , 'generateReport']);
             Route::get('/export/{reportType}', [\App\Http\Controllers\Api\AnalyticsController::class , 'exportReport']);
+        });
+
+        // Forecast Target Routes
+        Route::prefix('forecast')->group(function () {
+            Route::post('/calculate-target', [\App\Http\Controllers\Api\ForecastTargetController::class , 'calculateTarget']);
+            Route::post('/save-target', [\App\Http\Controllers\Api\ForecastTargetController::class , 'saveTarget']);
+            Route::get('/active-target', [\App\Http\Controllers\Api\ForecastTargetController::class , 'getActiveTarget']);
+            Route::post('/update-progress', [\App\Http\Controllers\Api\ForecastTargetController::class , 'updateProgress']);
         });
 
         // Suppliers

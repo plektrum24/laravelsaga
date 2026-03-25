@@ -18,89 +18,183 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProductController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Get product pricing tiers
+     * GET /api/products/{product}/pricing-tiers
+     */
+    public function getPricingTiers($productId)
     {
-        $query = Product::with(['category', 'units.unit', 'branch']);
+        $product = Product::with(['tierPricing'])
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->findOrFail($productId);
 
-        // Search
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%")
-                    ->orWhere('barcode', 'like', "%{$search}%");
-            });
-        }
-
-        // Filter Category
-        if ($request->has('category_id') && $request->category_id) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        // Filter Low Stock
-        if ($request->has('low_stock') && $request->low_stock === 'true') {
-            $query->whereColumn('stock', '<=', 'min_stock');
-        }
-
-        // Sort
-        $query->reorder();
-        $sort = $request->sort ?? 'name_asc';
-
-        switch ($sort) {
-            case 'name_asc':
-                $query->orderBy('name', 'asc');
-                break;
-            case 'name_desc':
-                $query->orderBy('name', 'desc');
-                break;
-            case 'price_asc':
-                $query->orderBy('sell_price', 'asc');
-                break;
-            case 'price_desc':
-                $query->orderBy('sell_price', 'desc');
-                break;
-            case 'stock_asc':
-                $query->orderByRaw('CAST(stock AS DECIMAL(15,2)) ASC');
-                break;
-            case 'stock_desc':
-                $query->orderByRaw('CAST(stock AS DECIMAL(15,2)) DESC');
-                break;
-            default:
-                $query->orderBy('name', 'asc');
-        }
-
-        $limit = $request->limit ?? 40;
-        $products = $query->paginate($limit);
-
-        $products->getCollection()->transform(function ($product) {
-            $product->units = $product->units->map(function ($productUnit) {
-                $productUnit->conversion_qty = (float) $productUnit->conversion_qty;
-                return $productUnit;
-            });
-            $baseUnit = $product->units->where('is_base_unit', true)->first();
-            if ($baseUnit) {
-                $product->base_unit_name = $baseUnit->unit->name ?? '-';
-                $product->buy_price = $baseUnit->buy_price;
-                $product->sell_price = $baseUnit->sell_price;
-            }
-            return $product;
-        });
-
-        $products->setCollection($products->getCollection()->values());
+        $tiers = $product->tierPricing ?? [];
 
         return response()->json([
             'success' => true,
             'data' => [
-                'products' => $products->items(),
-                'pagination' => [
-                    'total' => $products->total(),
-                    'per_page' => $products->perPage(),
-                    'current_page' => $products->currentPage(),
-                    'last_page' => $products->lastPage(),
-                    'totalPages' => $products->lastPage(),
-                ]
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'base_price' => $product->sell_price,
+                'tiers' => $tiers->map(function ($tier) {
+                    return [
+                        'id' => $tier->id,
+                        'min_qty' => $tier->min_qty,
+                        'max_qty' => $tier->max_qty,
+                        'price' => $tier->price,
+                        'discount_percent' => $tier->discount_percent,
+                    ];
+                }),
             ]
         ]);
+    }
+
+    /**
+     * Calculate price based on quantity
+     * POST /api/products/calculate-price
+     */
+    public function calculatePrice(Request $request)
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|numeric|min:1',
+        ]);
+
+        $product = Product::where('tenant_id', auth()->user()->tenant_id)
+            ->findOrFail($validated['product_id']);
+
+        $quantity = $validated['quantity'];
+        $basePrice = $product->sell_price;
+        $finalPrice = $basePrice;
+        $appliedTier = null;
+        $discount = 0;
+
+        // Check tier pricing if exists
+        if ($product->tierPricing && $product->tierPricing->count() > 0) {
+            foreach ($product->tierPricing as $tier) {
+                if ($quantity >= $tier->min_qty && 
+                    ($tier->max_qty === null || $quantity <= $tier->max_qty)) {
+                    $finalPrice = $tier->price;
+                    $appliedTier = $tier;
+                    if ($tier->discount_percent > 0) {
+                        $discount = $tier->discount_percent;
+                    }
+                    break;
+                }
+            }
+        }
+
+        $total = $finalPrice * $quantity;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'quantity' => $quantity,
+                'base_price' => $basePrice,
+                'final_price' => $finalPrice,
+                'discount_percent' => $discount,
+                'tier_applied' => $appliedTier ? [
+                    'min_qty' => $appliedTier->min_qty,
+                    'max_qty' => $appliedTier->max_qty,
+                ] : null,
+                'subtotal' => $total,
+            ]
+        ]);
+    }
+
+    public function index(Request $request)
+    {
+        try {
+            $query = Product::with(['category', 'units.unit', 'branch']);
+
+            // Search
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%")
+                        ->orWhere('barcode', 'like', "%{$search}%");
+                });
+            }
+
+            // Filter Category
+            if ($request->has('category_id') && $request->category_id) {
+                $query->where('category_id', $request->category_id);
+            }
+
+            // Filter Low Stock
+            if ($request->has('low_stock') && $request->low_stock === 'true') {
+                $query->whereColumn('stock', '<=', 'min_stock');
+            }
+
+            // Sort - clear any existing order first
+            $query->getQuery()->orders = null;
+            $sort = $request->sort ?? 'name_asc';
+
+            switch ($sort) {
+                case 'name_asc':
+                    $query->orderBy('name', 'asc');
+                    break;
+                case 'name_desc':
+                    $query->orderBy('name', 'desc');
+                    break;
+                case 'price_asc':
+                    $query->orderBy('sell_price', 'asc');
+                    break;
+                case 'price_desc':
+                    $query->orderBy('sell_price', 'desc');
+                    break;
+                case 'stock_asc':
+                    $query->orderByRaw('CAST(stock AS DECIMAL(15,2)) ASC');
+                    break;
+                case 'stock_desc':
+                    $query->orderByRaw('CAST(stock AS DECIMAL(15,2)) DESC');
+                    break;
+                default:
+                    $query->orderBy('name', 'asc');
+            }
+
+            $limit = $request->limit ?? 40;
+            $products = $query->paginate($limit);
+
+            $products->getCollection()->transform(function ($product) {
+                $product->units = $product->units->map(function ($productUnit) {
+                    $productUnit->conversion_qty = (float) $productUnit->conversion_qty;
+                    return $productUnit;
+                });
+                $baseUnit = $product->units->where('is_base_unit', true)->first();
+                if ($baseUnit) {
+                    $product->base_unit_name = $baseUnit->unit->name ?? '-';
+                    $product->buy_price = $baseUnit->buy_price;
+                    $product->sell_price = $baseUnit->sell_price;
+                }
+                return $product;
+            });
+
+            $products->setCollection($products->getCollection()->values());
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'products' => $products->items(),
+                    'pagination' => [
+                        'total' => $products->total(),
+                        'per_page' => $products->perPage(),
+                        'current_page' => $products->currentPage(),
+                        'last_page' => $products->lastPage(),
+                        'totalPages' => $products->lastPage(),
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Product index error: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching products: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function show($id)
@@ -479,5 +573,108 @@ class ProductController extends Controller
     {
         Log::info('ProductController: downloadTemplate called');
         return Excel::download(new ProductsTemplateExport, 'template_import_produk.xlsx');
+    }
+
+    /**
+     * Get deadstock products with analytics
+     * GET /api/products/deadstock
+     */
+    public function deadstock(Request $request)
+    {
+        $tenantId = auth()->user()->tenant_id;
+
+        $filters = [
+            'search' => $request->input('search', ''),
+            'category_id' => $request->input('category_id'),
+            'supplier_id' => $request->input('supplier_id'),
+            'min_days' => $request->input('min_days', 30),
+            'max_stock' => $request->input('max_stock', 0),
+            'sort' => $request->input('sort', 'days_desc'),
+        ];
+
+        $deadstockService = new \App\Services\DeadstockService();
+        $products = $deadstockService->getDeadstock($tenantId, $filters);
+        $analytics = $deadstockService->getAnalytics($tenantId, $filters);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'products' => $products,
+                'analytics' => $analytics,
+            ]
+        ]);
+    }
+
+    /**
+     * Export deadstock data to CSV
+     * GET /api/products/deadstock/export
+     */
+    public function exportDeadstock(Request $request)
+    {
+        $tenantId = auth()->user()->tenant_id;
+
+        $filters = [
+            'search' => $request->input('search', ''),
+            'category_id' => $request->input('category_id'),
+            'supplier_id' => $request->input('supplier_id'),
+            'min_days' => $request->input('min_days', 30),
+            'max_stock' => $request->input('max_stock', 0),
+        ];
+
+        $deadstockService = new \App\Services\DeadstockService();
+        $csv = $deadstockService->exportToCsv($tenantId, $filters);
+
+        return response($csv)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="deadstock_' . date('Y-m-d') . '.csv"');
+    }
+
+    /**
+     * Get pricing tiers for a product
+     * GET /api/products/{id}/pricing-tiers
+     */
+    public function getPricingTiers($productId, Request $request)
+    {
+        $product = Product::findOrFail($productId);
+        $qty = $request->input('qty', 1);
+
+        $pricingInfo = $product->getPricingInfo($qty);
+        $tiers = $product->getPricingTiers();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'base_price' => $product->sell_price,
+                'enable_tiered_pricing' => $product->enable_tiered_pricing,
+                'tiers' => $tiers,
+                'selected_qty' => $qty,
+                'calculated_price' => $pricingInfo['unit_price'],
+                'total' => $pricingInfo['total'],
+                'savings' => $pricingInfo['savings'],
+                'discount_percent' => $pricingInfo['discount_percent'],
+            ]
+        ]);
+    }
+
+    /**
+     * Calculate price for quantity
+     * POST /api/products/calculate-price
+     */
+    public function calculatePrice(Request $request)
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $product = Product::findOrFail($validated['product_id']);
+        $pricingInfo = $product->getPricingInfo($validated['quantity']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $pricingInfo,
+        ]);
     }
 }

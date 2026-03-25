@@ -5,6 +5,9 @@ import ApexCharts from 'apexcharts';
 // Services
 import { api, auth, barcode, store } from './services/index.js';
 
+// Utilities
+import currency from './utils/currency.js';
+
 // flatpickr
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
@@ -16,6 +19,7 @@ window.Alpine = Alpine;
 window.ApexCharts = ApexCharts;
 window.flatpickr = flatpickr;
 window.FullCalendar = Calendar;
+window.Currency = currency;
 
 // Make services globally available
 window.ApiService = api;

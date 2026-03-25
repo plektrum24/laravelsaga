@@ -273,7 +273,8 @@ function posHistory() {
         async fetchCashiers() {
             try {
                 const token = localStorage.getItem('saga_token');
-                const response = await fetch('/api/users?role=cashier', {
+                // Use the dedicated cashiers endpoint
+                const response = await fetch('/api/users/cashiers', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();

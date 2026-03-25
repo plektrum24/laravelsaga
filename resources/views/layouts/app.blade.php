@@ -49,21 +49,79 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        .scanner-active video {
-            border-radius: 0.75rem;
+        [x-cloak] { display: none !important; }
+
+        /* Sidebar fixed - tidak mengganggu konten */
+        .sidebar {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 50 !important;
         }
 
-        [x-cloak] {
-            display: none !important;
+        /* Content wrapper dengan transisi smooth */
+        #content-wrapper {
+            transition: margin-left 0.3s ease-in-out;
         }
 
-        /* Force Zoom Override */
-        body {
-            zoom: 0.8 !important;
+        /* Header sticky - selalu di atas */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 60 !important;
+            background-color: inherit;
+        }
+
+        /* Main scroll area */
+        main {
+            overflow-x: hidden;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        /* Prevent horizontal scroll */
+        body, html {
+            overflow-x: hidden;
         }
     </style>
 
     <script>
+        // CRITICAL: Preserve scroll position on page navigation
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+
+        // Save scroll position before unload
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('scrollPosition', window.scrollY);
+        });
+
+        // Restore scroll position on load
+        window.addEventListener('load', () => {
+            const scrollPos = sessionStorage.getItem('scrollPosition');
+            if (scrollPos !== null) {
+                // Use requestAnimationFrame to ensure DOM is ready
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, parseInt(scrollPos, 10));
+                });
+            }
+        });
+
+        // Prevent scroll to top when Alpine.js updates
+        document.addEventListener('alpine:init', () => {
+            Alpine.effect(() => {
+                // Store current scroll position
+                const scrollY = window.scrollY;
+                // After Alpine updates, restore scroll position
+                requestAnimationFrame(() => {
+                    if (Math.abs(window.scrollY - scrollY) > 100) {
+                        window.scrollTo(0, scrollY);
+                    }
+                });
+            });
+        });
         function priceCheckerMixin() {
             return {
                 showPriceCheckModal: false,
@@ -287,24 +345,27 @@
     </div>
     <!-- Preloader End -->
 
-    <div class="flex min-h-[125vh]">
+    <!-- Main Layout Wrapper -->
+    <div id="main-layout" class="flex h-screen overflow-hidden bg-gray-50 dark:bg-black">
         <!-- ===== Sidebar Start ===== -->
         @include('partials.sidebar')
         <!-- ===== Sidebar End ===== -->
 
         <!-- ===== Content Area Start ===== -->
-        <div class="relative flex flex-1 flex-col transition-all duration-300 ease-in-out">
+        <div id="content-wrapper" 
+             class="relative flex flex-1 flex-col overflow-hidden"
+             :class="$store.sidebar.open ? 'lg:ml-[280px]' : 'lg:ml-[80px]'">
             <!-- Small Device Overlay -->
             <div @click="$store.sidebar.open = false" :class="$store.sidebar.open ? 'block lg:hidden' : 'hidden'"
-                class="fixed w-full h-[125vh] z-[9999] bg-gray-900/50"></div>
+                class="fixed inset-0 z-[45] bg-gray-900/50 lg:hidden"></div>
 
             <!-- ===== Header Start ===== -->
             @include('partials.header')
             <!-- ===== Header End ===== -->
 
             <!-- ===== Main Content Start ===== -->
-            <main class="flex-1 bg-gray-50 dark:bg-black">
-                <div class="mx-auto w-full p-4 sm:p-6 md:p-8">
+            <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-black">
+                <div class="w-full p-6">
                     @if (session('success'))
                         <x-alert.alert type="success" title="Success!" class="mb-6">
                             {{ session('success') }}

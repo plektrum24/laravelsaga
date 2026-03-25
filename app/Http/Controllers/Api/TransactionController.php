@@ -9,34 +9,73 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\LoyaltySetting;
 use App\Models\CustomerPoint;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TransactionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Transaction::with(['items.product', 'customer', 'user']);
+        try {
+            $query = Transaction::with(['items.product', 'customer', 'user']);
 
-        if ($request->date) {
-            $query->whereDate('date', $request->date);
+            // Date filter
+            if ($request->has('date') && $request->date) {
+                $query->whereDate('date', $request->date);
+            }
+
+            // Date range filter
+            if ($request->has('start_date') && $request->start_date) {
+                $query->whereDate('date', '>=', $request->start_date);
+            }
+            if ($request->has('end_date') && $request->end_date) {
+                $query->whereDate('date', '<=', $request->end_date);
+            }
+
+            // Payment method filter
+            if ($request->has('payment_method') && $request->payment_method) {
+                $query->where('payment_method', $request->payment_method);
+            }
+
+            // Cashier filter
+            if ($request->has('cashier_id') && $request->cashier_id) {
+                $query->where('user_id', $request->cashier_id);
+            }
+
+            $perPage = $request->get('per_page', 20);
+            $transactions = $query->latest()->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $transactions
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Transaction index error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching transactions: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $query->latest()->paginate(20)
-        ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'cart_items' => 'required|array|min:1',
-            'paid_amount' => 'required|numeric',
-            'payment_method' => 'required|string',
-        ]);
-
         try {
+            // Validate request
+            $validated = $request->validate([
+                'cart_items' => 'required|array|min:1',
+                'cart_items.*.product_id' => 'required|exists:products,id',
+                'cart_items.*.unit_id' => 'nullable|exists:units,id',
+                'cart_items.*.qty' => 'required|numeric|min:1',
+                'cart_items.*.price' => 'required|numeric|min:0',
+                'payment_method' => 'required|in:cash,transfer,debit,credit,ewallet',
+                'paid_amount' => 'required|numeric|min:0',
+                'customer_id' => 'nullable|exists:customers,id',
+                'notes' => 'nullable|string',
+            ]);
+
             DB::connection('tenant')->beginTransaction();
 
             // Calculate Totals verification
@@ -45,18 +84,17 @@ class TransactionController extends Controller
 
             foreach ($request->cart_items as $item) {
                 // Fetch product for secure price
-                // For optimal perf we could fetchAll whereIn id, but loop is fine for POS cart size
-                $product = Product::find($item['id']);
-                if (!$product)
-                    continue;
+                $product = Product::find($item['product_id']);
+                if (!$product) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Produk tidak ditemukan: ID ' . $item['product_id']
+                    ], 400);
+                }
 
                 $qty = $item['qty'];
-                // Logic for unit price? For now assume base price or passed price verified
-                // Simplification for rapid dev: Trust frontend sending correct price but verify basic existence
-                // Ideally: Find distinct price based on unit.
-
                 $price = $item['price'];
-                $unitId = $item['unitId'] ?? null;
+                $unitId = $item['unit_id'] ?? null;
                 $lineTotal = $price * $qty;
                 $subtotal += $lineTotal;
 
@@ -85,6 +123,13 @@ class TransactionController extends Controller
                 // Decrement Stock
                 if ($product->track_stock) {
                     $stockToDeduct = $qty * $conversionQty;
+                    if ($product->stock < $stockToDeduct) {
+                        DB::connection('tenant')->rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Stok tidak mencukupi untuk produk: ' . $product->name
+                        ], 400);
+                    }
                     $product->decrement('stock', $stockToDeduct);
                 }
             }
@@ -92,18 +137,37 @@ class TransactionController extends Controller
             $grandTotal = $subtotal; // Add tax/discount later
             $change = $request->paid_amount - $grandTotal;
 
+            // Get user branch
+            $user = auth()->user();
+            $branchId = $user->branch_id ?? $user->current_branch_id;
+            
+            if (!$branchId) {
+                DB::connection('tenant')->rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Branch tidak ditemukan. Silakan pilih branch terlebih dahulu.'
+                ], 400);
+            }
+
             $transaction = Transaction::create([
-                'invoice_number' => 'INV/' . date('Ymd') . '/' . mt_rand(1000, 9999),
-                'branch_id' => $request->user()->branch_id,
+                'tenant_id' => $user->tenant_id,
+                'invoice_number' => 'INV/' . date('Ymd') . '/' . str_pad(
+                    Transaction::whereDate('created_at', today())->count() + 1,
+                    4,
+                    '0',
+                    STR_PAD_LEFT
+                ),
+                'branch_id' => $branchId,
                 'customer_id' => $request->customer_id,
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
                 'date' => now(),
                 'subtotal' => $subtotal,
                 'grand_total' => $grandTotal,
                 'paid_amount' => $request->paid_amount,
                 'change_amount' => max(0, $change),
                 'payment_method' => $request->payment_method,
-                'status' => 'completed'
+                'status' => 'completed',
+                'notes' => $request->notes,
             ]);
 
             // Award loyalty points to customer
@@ -117,15 +181,14 @@ class TransactionController extends Controller
                 // Record Inventory Movement
                 $product = Product::find($item['product_id']);
                 if ($product && $product->track_stock) {
-                    // Note: Stock was already decremented in the first loop
                     InventoryMovement::create([
-                        'tenant_id' => $transaction->tenant_id,
+                        'tenant_id' => $user->tenant_id,
                         'product_id' => $product->id,
-                        'branch_id' => $transaction->branch_id,
-                        'user_id' => $transaction->user_id,
+                        'branch_id' => $branchId,
+                        'user_id' => $user->id,
                         'reference_number' => $transaction->invoice_number,
                         'type' => 'out',
-                        'qty' => $item['qty'] * ($item['conversion_qty'] ?? 1), // Need to ensure conversion_qty is available
+                        'qty' => $item['qty'] * ($item['conversion_qty'] ?? 1),
                         'current_stock' => $product->stock,
                         'notes' => 'Sales: ' . $transaction->invoice_number,
                     ]);
@@ -136,14 +199,24 @@ class TransactionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Transaction success',
-                'data' => $transaction
+                'message' => 'Transaksi berhasil',
+                'data' => $transaction->load('items.product')
             ]);
 
-        }
-        catch (\Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
             DB::connection('tenant')->rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            \Log::error('Transaction store error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 

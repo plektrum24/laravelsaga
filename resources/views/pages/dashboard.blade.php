@@ -285,7 +285,7 @@
         <!-- Debt & Receivable Alerts -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6" x-show="user?.role !== 'cashier'">
             <!-- Supplier Debt Alert -->
-            <a href="supplier-debts.html"
+            <a href="{{ route('finance.debts') }}"
                 class="rounded-2xl border border-gray-200 bg-gradient-to-br from-red-500 to-rose-600 p-5 text-white hover:from-red-600 hover:to-rose-700 transition-all">
                 <div class="flex items-center justify-between mb-3">
                     <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -307,7 +307,7 @@
             </a>
 
             <!-- Customer Receivable Alert -->
-            <a href="receivables.html"
+            <a href="{{ route('finance.receivables') }}"
                 class="rounded-2xl border border-gray-200 bg-gradient-to-br from-emerald-500 to-green-600 p-5 text-white hover:from-emerald-600 hover:to-green-700 transition-all">
                 <div class="flex items-center justify-between mb-3">
                     <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">

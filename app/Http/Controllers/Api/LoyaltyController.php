@@ -32,32 +32,57 @@ class LoyaltyController extends Controller
      */
     public function updateSettings(Request $request)
     {
-        $validated = $request->validate([
-            'earn_rate' => 'required|numeric|min:1',
-            'point_value' => 'required|numeric|min:0.01',
-            'min_redemption_points' => 'required|integer|min:0',
-            'max_redemption_percent' => 'required|numeric|between:0,100',
-            'points_expiry_months' => 'required|integer|min:0',
-            'enabled' => 'boolean',
-        ]);
-
-        $tenantId = auth()->user()->tenant_id;
-        $settings = LoyaltySetting::where('tenant_id', $tenantId)->first();
-        
-        if (!$settings) {
-            $settings = LoyaltySetting::create([
-                'tenant_id' => $tenantId,
-                ...$validated
+        try {
+            $validated = $request->validate([
+                'earn_rate' => 'required|numeric|min:1',
+                'point_value' => 'required|numeric|min:0.01',
+                'min_redemption_points' => 'required|integer|min:0',
+                'max_redemption_percent' => 'required|numeric|between:0,100',
+                'points_expiry_months' => 'required|integer|min:0',
+                'enabled' => 'nullable|boolean',
             ]);
-        } else {
-            $settings->update($validated);
+
+            $tenantId = auth()->user()->tenant_id;
+            $settings = LoyaltySetting::where('tenant_id', $tenantId)->first();
+
+            if (!$settings) {
+                $settings = LoyaltySetting::create([
+                    'tenant_id' => $tenantId,
+                    'earn_rate' => $validated['earn_rate'],
+                    'point_value' => $validated['point_value'],
+                    'min_redemption_points' => $validated['min_redemption_points'],
+                    'max_redemption_percent' => $validated['max_redemption_percent'],
+                    'points_expiry_months' => $validated['points_expiry_months'],
+                    'enabled' => $validated['enabled'] ?? true,
+                ]);
+            } else {
+                $settings->update([
+                    'earn_rate' => $validated['earn_rate'],
+                    'point_value' => $validated['point_value'],
+                    'min_redemption_points' => $validated['min_redemption_points'],
+                    'max_redemption_percent' => $validated['max_redemption_percent'],
+                    'points_expiry_months' => $validated['points_expiry_months'],
+                    'enabled' => $validated['enabled'] ?? $settings->enabled,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Loyalty settings updated successfully',
+                'data' => $settings
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update loyalty settings: ' . $e->getMessage()
+            ], 500);
         }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Loyalty settings updated',
-            'data' => $settings
-        ]);
     }
 
     /**

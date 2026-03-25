@@ -82,7 +82,7 @@
                 @foreach ($menuGroups as $groupIndex => $menuGroup)
                     <div>
                         <!-- Menu Group Title -->
-                        <h2 class="mb-4 text-xs uppercase flex leading-[20px] text-gray-400"
+                        <h2 class="mb-3 mt-4 text-xs uppercase flex leading-[20px] text-gray-400"
                             :class="(!$store.sidebar.isExpanded && !$store.sidebar.isHovered && !$store.sidebar.isMobileOpen) ?
                             'lg:justify-center' : 'justify-start'">
                             <template
@@ -97,7 +97,7 @@
                         </h2>
 
                         <!-- Menu Items -->
-                        <ul class="flex flex-col gap-1">
+                        <ul class="flex flex-col gap-0.5">
                             @foreach ($menuGroup['items'] as $itemIndex => $item)
                                 <li>
                                     @if (isset($item['subItems']))
@@ -146,7 +146,7 @@
 
                                         <!-- Submenu -->
                                         <div x-show="isSubmenuOpen({{ $groupIndex }}, {{ $itemIndex }}) && ($store.sidebar.isExpanded || $store.sidebar.isHovered || $store.sidebar.isMobileOpen)">
-                                            <ul class="mt-2 space-y-1 ml-9">
+                                            <ul class="mt-2 space-y-0.5 ml-9">
                                                 @foreach ($item['subItems'] as $subItem)
                                                     <li>
                                                         <a href="{{ $subItem['path'] }}" class="menu-dropdown-item"

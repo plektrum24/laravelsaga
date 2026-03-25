@@ -340,6 +340,11 @@ function posSystem() {
         },
 
         async processCheckout() {
+            if (this.cart.length === 0) {
+                Swal.fire('Peringatan', 'Keranjang belanja masih kosong', 'warning');
+                return;
+            }
+
             const result = await Swal.fire({
                 title: '💳 Konfirmasi Pembayaran',
                 html: `
@@ -362,24 +367,55 @@ function posSystem() {
                 this.isLoading = true;
                 try {
                     const token = localStorage.getItem('saga_token');
+                    
+                    if (!token) {
+                        Swal.fire('Error', 'Session expired. Silakan login ulang.', 'error');
+                        window.location.href = '/signin';
+                        return;
+                    }
+
+                    // Validate cart items
+                    const cartItems = this.cart.map(item => {
+                        if (!item.id || !item.price || item.qty <= 0) {
+                            throw new Error('Data produk tidak valid: ' + (item.name || 'Unknown'));
+                        }
+                        return {
+                            product_id: item.id,
+                            unit_id: item.unitId || null,
+                            qty: item.qty,
+                            price: item.price,
+                            subtotal: item.price * item.qty
+                        };
+                    });
+
+                    const payload = {
+                        cart_items: cartItems,
+                        payment_method: 'cash',
+                        paid_amount: this.total,
+                        customer_id: null,
+                        notes: null
+                    };
+
+                    console.log('Sending checkout request:', payload);
+
                     const response = await fetch('/api/transactions', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token
+                            'Authorization': 'Bearer ' + token,
+                            'Accept': 'application/json'
                         },
-                        body: JSON.stringify({
-                            cart_items: this.cart.map(item => ({
-                                product_id: item.id,
-                                unit_id: item.unitId,
-                                quantity: item.qty,
-                                price: item.price
-                            })),
-                            payment_method: 'Cash',
-                        })
+                        body: JSON.stringify(payload)
                     });
 
+                    // Check if response is HTML (error page)
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('text/html')) {
+                        throw new Error('Server mengembalikan HTML error page. Session mungkin expired.');
+                    }
+
                     const data = await response.json();
+                    
                     if(data.success) {
                         Swal.fire({
                             title: '✅ Berhasil!',
@@ -407,8 +443,20 @@ function posSystem() {
                         Swal.fire('❌ Gagal', data.message || 'Terjadi kesalahan', 'error');
                     }
                 } catch(e) {
-                    console.error(e);
-                    Swal.fire('❌ Error', 'Terjadi kesalahan sistem', 'error');
+                    console.error('Checkout error:', e);
+                    let errorMessage = 'Terjadi kesalahan sistem';
+                    
+                    if (e.message.includes('HTML')) {
+                        errorMessage = 'Session expired. Silakan login ulang.';
+                        localStorage.removeItem('saga_token');
+                        setTimeout(() => window.location.href = '/signin', 2000);
+                    } else if (e.message.includes('produk tidak valid')) {
+                        errorMessage = e.message;
+                    } else if (e.message.includes('Failed to fetch')) {
+                        errorMessage = 'Tidak dapat terhubung ke server';
+                    }
+                    
+                    Swal.fire('❌ Error', errorMessage, 'error');
                 } finally {
                     this.isLoading = false;
                 }

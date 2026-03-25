@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 class CategoryController extends Controller
 {
@@ -16,8 +16,24 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Category::withCount('products')->orderBy('name')->get();
-        return response()->json(['success' => true, 'data' => $categories]);
+        try {
+            // Simple query without withCount to avoid potential relationship issues
+            $categories = Category::orderBy('name')->get();
+            
+            // Manually add products count if needed
+            foreach ($categories as $category) {
+                $category->products_count = $category->products()->count();
+            }
+            
+            return response()->json(['success' => true, 'data' => $categories]);
+        } catch (\Exception $e) {
+            \Log::error('Category index error: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false, 
+                'message' => 'Error fetching categories: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
     }
 
     /**

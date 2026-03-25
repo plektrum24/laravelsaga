@@ -15,10 +15,11 @@ class Category extends Model
         'tenant_id',
         'name',
         'description',
+        'prefix',
     ];
 
     public function products()
     {
-        return $this->hasMany(Product::class);
+        return $this->hasMany(Product::class, 'category_id', 'id');
     }
 }

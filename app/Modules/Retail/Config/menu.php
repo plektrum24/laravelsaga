@@ -26,70 +26,68 @@ return [
                 'icon' => '<path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />',
                 'roles' => ['Owner', 'Manager'],
                 'submenu' => [
-                    ['label' => 'Salesmen Data', 'route' => 'sales.index'], // Assuming route exists or will be created
+                    ['label' => 'Salesman Data', 'route' => 'salesman.index'],
                     ['label' => 'Sales Orders', 'route' => 'sales.create'],
-                    ['label' => 'Visit Plans', 'route' => 'sales.index'],
-                    ['label' => 'Sales Order History', 'route' => 'pos.history'],
-                ]
-            ],
-            [
-                'label' => 'Inventory',
-                'id' => 'inventory', // for toggle
-                'icon' => '<path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H4V5h16v14zM6 7h12v2H6zm0 4h12v2H6zm0 4h8v2H6z" />',
-                'roles' => ['Owner', 'Gudang'],
-                'submenu' => [
-                    ['label' => 'Items', 'route' => 'inventory.index'],
-                    ['label' => 'Categories', 'route' => 'inventory.categories'],
-                    ['label' => 'Stock Management', 'route' => 'inventory.stock-management'],
-                    ['label' => 'Stock Transfer', 'route' => 'inventory.stock-transfer'],
-                    ['label' => 'Transfer Analytics', 'route' => 'inventory.stock-transfer-analytics'],
-                    ['label' => 'Label Designer', 'route' => 'inventory.label-designer'],
-                    ['label' => 'Stock Movements', 'route' => 'inventory.movements'],
-                    ['label' => 'Deadstock', 'route' => 'inventory.deadstock'],
-                    ['label' => 'Transfer Item', 'route' => 'inventory.transfer'],
+                    ['label' => 'Visit Plans', 'route' => 'visit-plans.index'],
+                    ['label' => 'Sales Order History', 'route' => 'sales.history'],
                 ]
             ],
             [
                 'label' => 'Item Receiving',
-                'id' => 'receiving',
-                'icon' => '<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" />',
-                'roles' => ['Owner', 'Gudang'],
+                'id' => 'item_receiving',
+                'icon' => '<path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4m0 0c0 1.657 1.343 3 3 3h10c1.657 0 3-1.343 3-3m0 0V6" />',
+                'roles' => ['Owner', 'Manager', 'Gudang'],
                 'submenu' => [
-                    ['label' => 'Goods In', 'route' => 'inventory.receiving.goods-in'],
-                    ['label' => 'Return Supplier', 'route' => 'inventory.receiving.supplier-returns'],
-                    ['label' => 'Returns (Customer)', 'route' => 'inventory.receiving.customer-returns'],
+                    ['label' => 'Goods In', 'route' => 'inventory.receiving.index'],
+                    ['label' => 'Supplier Returns', 'route' => 'inventory.receiving.supplier-returns'],
+                    ['label' => 'Customer Returns', 'route' => 'inventory.receiving.customer-returns'],
+                    ['label' => 'Receiving History', 'route' => 'inventory.receiving.history'],
                 ]
             ],
             [
-                'label' => 'Suppliers & Customers',
+                'label' => 'Inventory',
+                'id' => 'inventory',
+                'icon' => '<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />',
+                'roles' => ['Owner', 'Manager', 'Gudang'],
+                'submenu' => [
+                    ['label' => 'Current Stock', 'route' => 'inventory.index'],
+                    ['label' => 'Stock Management', 'route' => 'inventory.stock-management'],
+                    ['label' => 'Stock Transfer', 'route' => 'inventory.stock-transfer'],
+                    ['label' => 'Transfer Analytics', 'route' => 'inventory.stock-transfer-analytics'],
+                    ['label' => 'Stock Movements', 'route' => 'inventory.movements'],
+                ]
+            ],
+            [
+                'label' => 'Inventory Intelligence',
+                'id' => 'inventory_intelligence',
+                'icon' => '<path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />',
+                'roles' => ['Owner', 'Manager'],
+                'submenu' => [
+                    ['label' => 'Stock Analytics', 'route' => 'inventory.stock-analytics'],
+                    ['label' => 'Product Forecasting', 'route' => 'inventory.forecasting'],
+                    ['label' => 'Deadstock', 'route' => 'inventory.deadstock'],
+                    ['label' => 'Categories', 'route' => 'inventory.categories'],
+                    ['label' => 'Label Designer', 'route' => 'inventory.label-designer'],
+                ]
+            ],
+            [
+                'label' => 'Partners',
                 'id' => 'partners',
-                'icon' => '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />',
-                'roles' => ['Owner', 'Gudang', 'Kasir'],
+                'icon' => '<path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />',
+                'roles' => ['Owner', 'Manager', 'Gudang', 'Kasir'],
                 'submenu' => [
                     ['label' => 'Suppliers', 'route' => 'inventory.suppliers'],
                     ['label' => 'Customers', 'route' => 'customers.index'],
                 ]
             ],
             [
-                'label' => 'Debt & Receivables',
-                'id' => 'debt',
-                'icon' => '<path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" />',
+                'label' => 'Finance',
+                'id' => 'finance',
+                'icon' => '<path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
                 'roles' => ['Owner', 'Manager'],
                 'submenu' => [
                     ['label' => 'Supplier Debts', 'route' => 'finance.debts'],
-                    ['label' => 'Receivables', 'route' => 'finance.receivables'],
-                ]
-            ],
-            [
-                'label' => 'Team Karyawan',
-                'id' => 'team_karyawan',
-                'icon' => '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />',
-                'roles' => ['Owner', 'Manager'],
-                'submenu' => [
-                    ['label' => 'Data Karyawan', 'route' => 'users.index'],
-                    ['label' => 'Kelola Team', 'route' => 'team.manage'],
-                    ['label' => 'Sales POS', 'route' => 'pos.index'],
-                    ['label' => 'Via Management', 'route' => 'via.management'],
+                    ['label' => 'Customer Receivables', 'route' => 'finance.receivables'],
                 ]
             ]
         ]
@@ -98,22 +96,10 @@ return [
         'title' => 'Others',
         'items' => [
             [
-                'label' => 'Sales Analytics & Reports',
-                'route' => 'reports.index',
+                'label' => 'Sales Analytics',
+                'route' => 'analytics.dashboard',
                 'icon' => '<path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
                 'roles' => ['Owner', 'Manager', 'Kasir']
-            ],
-            [
-                'label' => 'Analytics Dashboard',
-                'route' => 'analytics.dashboard',
-                'icon' => '<path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />',
-                'roles' => ['Owner', 'Manager']
-            ],
-            [
-                'label' => 'Payroll (Gaji)',
-                'route' => 'payroll.index',
-                'icon' => '<path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" />',
-                'roles' => ['Owner']
             ],
             [
                 'label' => 'User Management',
@@ -135,7 +121,6 @@ return [
                 'submenu' => [
                     ['label' => 'Store Settings', 'route' => 'settings.index'],
                     ['label' => 'Loyalty Program', 'route' => 'settings.loyalty'],
-                    ['label' => 'Backup & Export', 'route' => 'settings.index', 'params' => ['tab' => 'backup']],
                 ]
             ]
         ]

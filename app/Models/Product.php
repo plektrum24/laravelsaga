@@ -27,6 +27,8 @@ class Product extends Model
         'sell_price',
         'track_stock',
         'is_active',
+        'enable_tiered_pricing',
+        'pricing_tier_config',
     ];
 
     protected $casts = [
@@ -35,6 +37,8 @@ class Product extends Model
         'stock' => 'decimal:4',
         'buy_price' => 'decimal:2',
         'sell_price' => 'decimal:2',
+        'enable_tiered_pricing' => 'boolean',
+        'pricing_tier_config' => 'array',
     ];
 
     public function category()
@@ -61,5 +65,59 @@ class Product extends Model
     public function isService()
     {
         return !$this->track_stock;
+    }
+
+    /**
+     * Get pricing tiers for this product
+     */
+    public function getPricingTiers()
+    {
+        if (!$this->enable_tiered_pricing) {
+            return [];
+        }
+
+        return $this->pricing_tier_config['tiers'] ?? [];
+    }
+
+    /**
+     * Get price for a specific quantity
+     */
+    public function getPriceForQuantity($qty)
+    {
+        if (!$this->enable_tiered_pricing) {
+            return $this->sell_price;
+        }
+
+        $tiers = $this->getPricingTiers();
+        if (empty($tiers)) {
+            return $this->sell_price;
+        }
+
+        // Find applicable tier (highest min_qty that qty qualifies for)
+        $applicableTier = collect($tiers)
+            ->sortByDesc('min_qty')
+            ->firstWhere('min_qty', '<=', $qty);
+
+        return $applicableTier ? $applicableTier['price'] : $this->sell_price;
+    }
+
+    /**
+     * Get pricing info for API response
+     */
+    public function getPricingInfo($qty = 1)
+    {
+        $unitPrice = $this->getPriceForQuantity($qty);
+        $basePrice = $this->sell_price;
+
+        return [
+            'unit_price' => $unitPrice,
+            'quantity' => $qty,
+            'total' => $unitPrice * $qty,
+            'base_total' => $basePrice * $qty,
+            'savings' => ($basePrice - $unitPrice) * $qty,
+            'discount_percent' => $basePrice > 0
+                ? round((($basePrice - $unitPrice) / $basePrice) * 100, 1)
+                : 0,
+        ];
     }
 }

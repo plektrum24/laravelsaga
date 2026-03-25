@@ -189,7 +189,7 @@
 }
 
 @utility menu-item {
-  @apply relative flex items-center gap-3 px-3 py-2 font-medium rounded-lg text-theme-sm;
+  @apply relative flex items-center gap-3 px-3 py-2.5 font-medium rounded-lg text-theme-sm mb-1;
 }
 
 @utility menu-item-active {
@@ -221,7 +221,7 @@
 }
 
 @utility menu-dropdown-item {
-  @apply text-theme-sm relative flex items-center gap-3 rounded-lg px-3 py-2.5 font-medium;
+  @apply text-theme-sm relative flex items-center gap-3 rounded-lg px-3 py-2 font-medium mb-0.5;
 }
 
 @utility menu-dropdown-item-active {

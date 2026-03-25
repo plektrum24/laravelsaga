@@ -19,13 +19,19 @@ class Purchase extends Model
         'reference_number',
         'date',
         'total_amount',
+        'paid_amount',
+        'payment_status', // unpaid, partial, paid
+        'due_date',
         'status',
         'notes',
     ];
 
     protected $casts = [
         'date' => 'date',
+        'due_date' => 'date',
         'total_amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'payment_status' => 'string',
     ];
 
     public function items()
@@ -47,4 +53,15 @@ class Purchase extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(DebtPayment::class);
+    }
+
+    public function getRemainingBalanceAttribute()
+    {
+        return $this->total_amount - $this->paid_amount;
+    }
+}
 }
