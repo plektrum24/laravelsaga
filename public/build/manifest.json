@@ -1,6 +1,10 @@
 {
   "resources/css/app.css": {
+<<<<<<< HEAD
     "file": "assets/app-DCojw9OC.css",
+=======
+    "file": "assets/app-BiIcndF6.css",
+>>>>>>> ed68086 (Update fitur / fix error)
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,7 +13,11 @@
     ]
   },
   "resources/css/dashboard.css": {
+<<<<<<< HEAD
     "file": "assets/dashboard-ChZfDdt7.css",
+=======
+    "file": "assets/dashboard-BriOHRJq.css",
+>>>>>>> ed68086 (Update fitur / fix error)
     "src": "resources/css/dashboard.css",
     "isEntry": true,
     "name": "dashboard",
